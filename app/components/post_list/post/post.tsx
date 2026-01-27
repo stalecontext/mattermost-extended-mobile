@@ -31,12 +31,14 @@ import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
 import Avatar from './avatar';
 import Body from './body';
+import DiscordReplyPreview from './discord_reply_preview';
 import Footer from './footer';
 import Header from './header';
 import PreHeader from './pre_header';
 import SystemMessage from './system_message';
 import UnreadDot from './unread_dot';
 
+import type {DiscordReplyData} from '@discord_replies/types';
 import type PostModel from '@typings/database/models/servers/post';
 import type ThreadModel from '@typings/database/models/servers/thread';
 import type UserModel from '@typings/database/models/servers/user';
@@ -448,6 +450,11 @@ const Post = ({
                         skipSavedHeader={skipSavedHeader}
                         skipPinnedHeader={skipPinnedHeader}
                     />
+                    {Array.isArray(post.props?.discord_replies) && post.props.discord_replies.length > 0 && (
+                        <DiscordReplyPreview
+                            replies={post.props.discord_replies as DiscordReplyData[]}
+                        />
+                    )}
                     <View style={[styles.container, consecutiveStyle]}>
                         {postAvatar}
                         <View style={rightColumnStyle}>

@@ -16,6 +16,7 @@ import {openAsBottomSheet} from '@screens/navigation';
 import {persistentNotificationsConfirmation} from '@utils/post';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
+import DiscordRepliesBar from '../discord_replies_bar';
 import PostInput from '../post_input';
 import QuickActions from '../quick_actions';
 import SendAction from '../send_button';
@@ -213,6 +214,10 @@ function DraftInput({
                     overScrollMode={'never'}
                     disableScrollViewPanResponder={true}
                 >
+                    <DiscordRepliesBar
+                        channelId={channelId}
+                        rootId={rootId}
+                    />
                     <Header
                         noMentionsError={noMentionsError}
                         postPriority={postPriority}

@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {formatAllDiscordReplies, pendingRepliesToApiFormat} from '@discord_replies/utils';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {DeviceEventEmitter} from 'react-native';
@@ -17,6 +18,7 @@ import {NOTIFY_ALL_MEMBERS} from '@constants/post_draft';
 import {MESSAGE_TYPE, SNACK_BAR_TYPE} from '@constants/snack_bar';
 import {useServerUrl} from '@context/server';
 import DraftUploadManager from '@managers/draft_upload_manager';
+import DiscordRepliesStore from '@store/discord_replies_store';
 import * as DraftUtils from '@utils/draft';
 import {isReactionMatch} from '@utils/emoji/helpers';
 import {getErrorMessage, getFullErrorMessage} from '@utils/errors';
@@ -108,12 +110,30 @@ export const useHandleSendMessage = ({
 
     const doSubmitMessage = useCallback(async (schedulingInfo?: SchedulingInfo) => {
         const postFiles = files.filter((f) => !f.failed);
+
+        // Get pending discord replies
+        const pendingReplies = DiscordRepliesStore.getPendingReplies(serverUrl, channelId, rootId);
+
+        // Build the final message with quotes prepended
+        let finalMessage = value;
+        if (pendingReplies.length > 0) {
+            const quoteBlock = formatAllDiscordReplies(pendingReplies, serverUrl);
+            finalMessage = quoteBlock + '\n\n' + value;
+        }
+
         const post = {
             user_id: currentUserId,
             channel_id: channelId,
             root_id: rootId,
-            message: value,
+            message: finalMessage,
         } as Post;
+
+        // Add discord_replies to props if we have pending replies
+        if (pendingReplies.length > 0) {
+            post.props = {
+                discord_replies: pendingRepliesToApiFormat(pendingReplies),
+            };
+        }
 
         if (!rootId && (
             postPriority.priority ||
@@ -136,6 +156,7 @@ export const useHandleSendMessage = ({
                 });
             } else {
                 clearDraft();
+                DiscordRepliesStore.clearPendingReplies(serverUrl, channelId, rootId);
             }
         } else if (isFromDraftView) {
             const shouldClearDraft = await canPostDraftInChannelOrThread({
@@ -154,6 +175,7 @@ export const useHandleSendMessage = ({
 
             createPost(serverUrl, post, postFiles);
             clearDraft();
+            DiscordRepliesStore.clearPendingReplies(serverUrl, channelId, rootId);
 
             // Early return to avoid calling DeviceEventEmitter.emit
             return;
@@ -161,6 +183,7 @@ export const useHandleSendMessage = ({
             // Response error is handled at the post level so don't have to wait to clear draft
             createPost(serverUrl, post, postFiles);
             clearDraft();
+            DiscordRepliesStore.clearPendingReplies(serverUrl, channelId, rootId);
         }
 
         setSendingMessage(false);

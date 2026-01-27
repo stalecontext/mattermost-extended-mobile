@@ -93,6 +93,8 @@
 		<string>Metropolis-SemiBold.ttf</string>
 		<string>Metropolis-Light.ttf</string>
 		<string>compass-icons.ttf</string>
+		<string>Metropolis.ttf</string>
+		<string>OpenSans.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

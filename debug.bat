@@ -1,0 +1,1 @@
+adb logcat *:E | findstr -i mattermost

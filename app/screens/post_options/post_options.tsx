@@ -6,7 +6,7 @@ import {useManagedConfig} from '@mattermost/react-native-emm';
 import React, {useMemo} from 'react';
 import {ScrollView} from 'react-native';
 
-import {CopyPermalinkOption, FollowThreadOption, ReplyOption, SaveOption} from '@components/common_post_options';
+import {CopyPermalinkOption, FollowThreadOption, QuoteReplyOption, ReplyOption, SaveOption} from '@components/common_post_options';
 import CopyTextOption from '@components/copy_text_option';
 import {ITEM_HEIGHT} from '@components/option_item';
 import {Screens} from '@constants';
@@ -79,7 +79,7 @@ const PostOptions = ({
         const items: Array<string | number> = [1];
         const optionsCount = [
             canCopyPermalink, canCopyText, canDelete, canEdit,
-            canMarkAsUnread, canPin, canReply, !isSystemPost, shouldRenderFollow,
+            canMarkAsUnread, canPin, canReply, canReply, !isSystemPost, shouldRenderFollow,
         ].reduce((acc, v) => {
             return v ? acc + 1 : acc;
         }, 0) + (shouldShowBindings ? 0.5 : 0);
@@ -114,6 +114,13 @@ const PostOptions = ({
                     <ReplyOption
                         bottomSheetId={Screens.POST_OPTIONS}
                         post={post}
+                    />
+                }
+                {canReply &&
+                    <QuoteReplyOption
+                        bottomSheetId={Screens.POST_OPTIONS}
+                        post={post}
+                        rootId={post.rootId}
                     />
                 }
                 {shouldRenderFollow &&

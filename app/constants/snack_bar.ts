@@ -11,6 +11,8 @@ export const SNACK_BAR_TYPE = keyMirror({
     AGENT_REGENERATE_ERROR: null,
     AGENT_TOOL_APPROVAL_ERROR: null,
     CODE_COPIED: null,
+    DISCORD_REPLY_ADDED: null,
+    DISCORD_REPLY_MAX_REACHED: null,
     FAVORITE_CHANNEL: null,
     FOLLOW_THREAD: null,
     INFO_COPIED: null,
@@ -65,6 +67,14 @@ const messages = defineMessages({
     CODE_COPIED: {
         id: 'snack.bar.code.copied',
         defaultMessage: 'Code copied to clipboard',
+    },
+    DISCORD_REPLY_ADDED: {
+        id: 'snack.bar.discord_reply.added',
+        defaultMessage: 'Quote added',
+    },
+    DISCORD_REPLY_MAX_REACHED: {
+        id: 'snack.bar.discord_reply.max_reached',
+        defaultMessage: 'Maximum 10 quotes reached',
     },
     FAVORITE_CHANNEL: {
         id: 'snack.bar.favorited.channel',
@@ -152,6 +162,18 @@ export const SNACK_BAR_CONFIG: Record<string, SnackBarConfig> = {
         message: messages.CODE_COPIED,
         iconName: 'content-copy',
         canUndo: false,
+    },
+    DISCORD_REPLY_ADDED: {
+        message: messages.DISCORD_REPLY_ADDED,
+        iconName: 'check',
+        canUndo: false,
+        type: MESSAGE_TYPE.SUCCESS,
+    },
+    DISCORD_REPLY_MAX_REACHED: {
+        message: messages.DISCORD_REPLY_MAX_REACHED,
+        iconName: 'alert-outline',
+        canUndo: false,
+        type: MESSAGE_TYPE.ERROR,
     },
     FAVORITE_CHANNEL: {
         message: messages.FAVORITE_CHANNEL,

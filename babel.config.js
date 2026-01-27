@@ -18,6 +18,7 @@ module.exports = {
                 '@agents': './app/products/agents',
                 '@assets': './dist/assets/',
                 '@calls': './app/products/calls',
+                '@discord_replies': './app/products/discord_replies',
                 '@client': './app/client',
                 '@components': './app/components',
                 '@constants': './app/constants',

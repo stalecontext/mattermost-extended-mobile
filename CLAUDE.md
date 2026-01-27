@@ -4,6 +4,32 @@
 
 React Native 0.76.9 with **New Architecture disabled** (RCT_NEW_ARCH_ENABLED=0).
 
+---
+
+## Fork Customizations
+
+This is a customized fork of mattermost-mobile with additional features.
+
+### Documentation
+- **[docs/fork/README.md](docs/fork/README.md)** - Fork overview and architecture patterns
+- **[docs/fork/discord-replies.md](docs/fork/discord-replies.md)** - Discord-style multi-quote replies implementation
+
+### Custom Features
+
+#### Discord-Style Multi-Quote Replies
+Allows users to quote-reply to multiple posts (up to 10) in a single message.
+
+**New files:**
+- `app/products/discord_replies/` - Types, constants, utils
+- `app/store/discord_replies_store.ts` - Ephemeral state
+- `app/components/post_list/post/discord_reply_preview/` - Preview above posts
+- `app/components/common_post_options/quote_reply_option.tsx` - Menu option
+- `app/components/post_draft/discord_replies_bar/` - Pending replies UI
+
+**Path alias:** `@discord_replies/*` → `app/products/discord_replies/*`
+
+---
+
 ## Important Development Notes
 - Always run the checks before committing code
 - Always test any changes using the mobile mcp before calling something complete or committing code
@@ -28,13 +54,16 @@ When testing features that require mobile device interaction:
 ## Key Commands
 
 ```bash
-# Setup
+# Setup (Windows - skip Unix scripts)
+npm install --ignore-scripts  # Install deps, skip preinstall.sh
+
+# Setup (macOS/Linux)
 npm run pod-install           # iOS CocoaPods (or pod-install-m1 for M1 Macs)
 npm run ios-gems              # Ruby gems for iOS (or ios-gems-m1 for M1 Macs)
 
 # Development
 npm start                     # Start Metro bundler
-npm run ios                   # Run iOS in simulator
+npm run ios                   # Run iOS in simulator (macOS only)
 npm run android               # Run Android in emulator
 
 # TypeScript type checking

@@ -42,6 +42,33 @@ allprojects {
     }
 }
 
+subprojects { subproject ->
+    afterEvaluate {
+        if (subproject.hasProperty("android")) {
+            subproject.android {
+                compileSdkVersion rootProject.ext.compileSdkVersion
+                buildFeatures {
+                    buildConfig = true
+                }
+            }
+        }
+    }
+
+    // Fix namespace for libraries with package in AndroidManifest.xml
+    subproject.plugins.withId("com.android.library") {
+        def manifestFile = subproject.file("src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
+            def manifest = new XmlSlurper().parse(manifestFile)
+            def packageName = manifest.@package.toString()
+            if (packageName && !packageName.isEmpty()) {
+                subproject.android {
+                    namespace packageName
+                }
+            }
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"
 
 dependencyLocking {
