@@ -3,7 +3,7 @@
 
 import {FlatList} from '@stream-io/flat-list-mvcp';
 import React, {type ReactElement, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {DeviceEventEmitter, type GestureResponderEvent, type ListRenderItemInfo, Platform, type StyleProp, StyleSheet, type ViewStyle, type NativeSyntheticEvent, type NativeScrollEvent} from 'react-native';
+import {DeviceEventEmitter, type GestureResponderEvent, Keyboard, type ListRenderItemInfo, Platform, type StyleProp, StyleSheet, type ViewStyle, type NativeSyntheticEvent, type NativeScrollEvent} from 'react-native';
 import {useKeyboardState} from 'react-native-keyboard-controller';
 import Animated, {runOnJS, useAnimatedProps, useAnimatedReaction, useSharedValue, type AnimatedStyle} from 'react-native-reanimated';
 
@@ -131,6 +131,7 @@ const PostList = ({
     const onScrollEndIndexListener = useRef<onScrollEndIndexListenerEvent>();
     const onViewableItemsChangedListener = useRef<ViewableItemsChangedListenerEvent>();
     const scrolledToHighlighted = useRef(false);
+    const scrollStartY = useRef(0);
     const [refreshing, setRefreshing] = useState(false);
     const [showScrollToEndBtn, setShowScrollToEndBtn] = useState(false);
     const [lastPostId, setLastPostId] = useState<string | undefined>(firstIdInPosts);
@@ -259,7 +260,19 @@ const PostList = ({
         if (!y && lastPostId !== firstIdInPosts) {
             setLastPostId(firstIdInPosts);
         }
+
+        // On Android, dismiss keyboard after scrolling up (in inverted list, y increases when scrolling to older messages)
+        if (Platform.OS === 'android' && y > scrollStartY.current + 10) {
+            Keyboard.dismiss();
+        }
     }, [firstIdInPosts, lastPostId, showScrollToEndBtn]);
+
+    // Dismiss keyboard when scrolling starts (Android only - iOS uses native 'interactive' mode)
+    const onScrollBeginDrag = useCallback(() => {
+        if (Platform.OS === 'android') {
+            Keyboard.dismiss();
+        }
+    }, []);
 
     const onScrollToIndexFailed = useCallback((info: ScrollIndexFailed) => {
         const index = Math.min(info.highestMeasuredFrameIndex, info.index);
@@ -448,7 +461,7 @@ const PostList = ({
                 contentInsetAdjustmentBehavior='never'
                 contentContainerStyle={contentContainerStyleWithPadding}
                 data={orderedPosts}
-                keyboardDismissMode='interactive'
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
                 keyboardShouldPersistTaps='handled'
                 keyExtractor={keyExtractor}
                 initialNumToRender={INITIAL_BATCH_TO_RENDER + 5}
@@ -459,6 +472,7 @@ const PostList = ({
                 onEndReached={onEndReached}
                 onEndReachedThreshold={0.9}
                 onScroll={onScrollProp}
+                onScrollBeginDrag={onScrollBeginDrag}
                 onMomentumScrollEnd={internalOnScroll}
                 onScrollToIndexFailed={onScrollToIndexFailed}
                 onViewableItemsChanged={onViewableItemsChanged}
