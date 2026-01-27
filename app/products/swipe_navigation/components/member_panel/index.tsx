@@ -7,6 +7,7 @@ import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {useIntl} from 'react-intl';
 import {SectionList, StyleSheet, Text, View} from 'react-native';
 
+import Emoji from '@components/emoji';
 import Loading from '@components/loading';
 import ProfilePicture from '@components/profile_picture';
 import TouchableWithFeedback from '@components/touchable_with_feedback';
@@ -64,11 +65,16 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         color: theme.sidebarText,
         ...typography('Body', 200),
     },
-    memberStatus: {
+    memberStatusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+        gap: 4,
+    },
+    memberStatusText: {
         color: theme.sidebarText,
         ...typography('Body', 75),
         opacity: 0.64,
-        marginTop: 2,
     },
     loadingContainer: {
         flex: 1,
@@ -236,10 +242,7 @@ const MemberPanel = ({
             teammateNameDisplay,
         );
 
-        // Format custom status - emoji and text
-        const customStatusText = item.customStatus
-            ? `${item.customStatus.emoji} ${item.customStatus.text}`.trim()
-            : '';
+        const hasCustomStatus = item.customStatus && (item.customStatus.emoji || item.customStatus.text);
 
         return (
             <TouchableWithFeedback
@@ -263,13 +266,23 @@ const MemberPanel = ({
                     >
                         {displayName || item.username}
                     </Text>
-                    {customStatusText && (
-                        <Text
-                            style={styles.memberStatus}
-                            numberOfLines={1}
-                        >
-                            {customStatusText}
-                        </Text>
+                    {hasCustomStatus && (
+                        <View style={styles.memberStatusRow}>
+                            {item.customStatus?.emoji && (
+                                <Emoji
+                                    emojiName={item.customStatus.emoji}
+                                    size={14}
+                                />
+                            )}
+                            {item.customStatus?.text && (
+                                <Text
+                                    style={styles.memberStatusText}
+                                    numberOfLines={1}
+                                >
+                                    {item.customStatus.text}
+                                </Text>
+                            )}
+                        </View>
                     )}
                 </View>
             </TouchableWithFeedback>

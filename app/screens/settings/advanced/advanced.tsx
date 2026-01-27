@@ -113,16 +113,13 @@ const AdvancedSettings = ({
                 />
                 <SettingSeparator/>
             </TouchableOpacity>
-            <TouchableOpacity
-                onPress={onPressHapticFeedback}
-            >
-                <SettingOption
-                    label={intl.formatMessage({id: 'settings.advanced.haptic_feedback', defaultMessage: 'Haptic Feedback'})}
-                    testID='advanced_settings.haptic_feedback.option'
-                    type='arrow'
-                />
-                <SettingSeparator/>
-            </TouchableOpacity>
+            <SettingOption
+                action={onPressHapticFeedback}
+                label={intl.formatMessage({id: 'settings.advanced.haptic_feedback', defaultMessage: 'Haptic Feedback'})}
+                testID='advanced_settings.haptic_feedback.option'
+                type='arrow'
+            />
+            <SettingSeparator/>
             {isDevMode && (
                 <TouchableOpacity
                     onPress={onPressComponentLibrary}
