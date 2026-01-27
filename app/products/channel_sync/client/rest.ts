@@ -3,12 +3,12 @@
 
 import {API_BASE} from '../constants';
 
-import type {ShouldSyncResponse, SyncedCategory} from '../types';
+import type {ShouldSyncResponse, SyncedCategoriesResponse} from '../types';
 
 export interface ClientChannelSyncMix {
     getChannelSyncRoute: () => string;
     getShouldSync: () => Promise<ShouldSyncResponse>;
-    getSyncedCategories: (teamId: string) => Promise<SyncedCategory[]>;
+    getSyncedCategories: (teamId: string) => Promise<SyncedCategoriesResponse>;
     dismissQuickJoinChannel: (channelId: string) => Promise<void>;
 }
 
@@ -22,7 +22,7 @@ const ClientChannelSync = (superclass: any) => class extends superclass {
         );
     };
 
-    getSyncedCategories = async (teamId: string): Promise<SyncedCategory[]> => {
+    getSyncedCategories = async (teamId: string): Promise<SyncedCategoriesResponse> => {
         return this.doFetch(
             `${this.getChannelSyncRoute()}/teams/${teamId}/categories`,
             {method: 'get'},

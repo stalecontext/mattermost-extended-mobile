@@ -28,6 +28,15 @@ export type SyncedCategory = CategoryWithChannels & {
 };
 
 /**
+ * Response from the synced categories endpoint
+ */
+export type SyncedCategoriesResponse = {
+    categories: SyncedCategory[];
+    order: string[];
+    quick_join_enabled: boolean;
+};
+
+/**
  * WebSocket event payload for channel sync refresh
  */
 export type ChannelSyncRefreshEvent = {

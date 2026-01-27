@@ -210,6 +210,8 @@
     "preinstall": "./scripts/preinstall.sh && npx solidarity",
     "start": "react-native start --host 127.0.0.1",
     "start:clean": "react-native start --host 127.0.0.1 --reset-cache",
+    "start:device": "react-native start --reset-cache",
+    "tunnel": "adb reverse tcp:8081 tcp:8081",
     "test": "NODE_OPTIONS=--max_old_space_size=12000 jest --runInBand",
     "test:ci": "NODE_OPTIONS=--max_old_space_size=12000 jest --verbose=false --forceExit",
     "test:ci:coverage": "npm run test:ci -- --coverage",

@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 /* eslint-disable max-lines */
+import {initializeChannelSync, fetchSyncedCategories} from '@channel_sync/actions/remote';
 import {DeviceEventEmitter} from 'react-native';
 
 import {addChannelToDefaultCategory, handleConvertedGMCategories, storeCategories} from '@actions/local/category';
@@ -489,6 +490,10 @@ export async function fetchMyChannelsForTeam(
         }
         const client = NetworkManager.getClient(serverUrl);
         const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+
+        // Initialize Channel Sync state for this server/team
+        const {syncEnabled} = await initializeChannelSync(serverUrl, teamId);
+
         const [allChannels, channelMemberships, categoriesWithOrder] = await Promise.all([
             client.getMyChannels(teamId, includeDeleted, since, groupLabel),
             client.getMyChannelMembers(teamId, groupLabel),
@@ -502,13 +507,21 @@ export async function fetchMyChannelsForTeam(
         }
 
         const channelIds = new Set<string>(channels.map((c) => c.id));
-        const {categories} = categoriesWithOrder;
+        let {categories} = categoriesWithOrder;
         memberships = memberships.reduce((result: ChannelMembership[], m: ChannelMembership) => {
             if (channelIds.has(m.channel_id)) {
                 result.push(m);
             }
             return result;
         }, []);
+
+        // If Channel Sync is enabled, fetch categories from the plugin instead
+        if (syncEnabled) {
+            const syncedResult = await fetchSyncedCategories(serverUrl, teamId, true, true);
+            if (syncedResult.categories) {
+                categories = syncedResult.categories;
+            }
+        }
 
         if (!fetchOnly) {
             const {models: chModels} = await storeMyChannelsForTeam(serverUrl, teamId, channels, memberships, true, isCRTEnabled);

@@ -40,11 +40,14 @@ export async function fetchSyncedCategories(
 ): Promise<CategoriesRequest> {
     try {
         const client = NetworkManager.getClient(serverUrl);
-        const syncedCategories = await client.getSyncedCategories(teamId);
+        const response = await client.getSyncedCategories(teamId);
 
         // Extract Quick Join channels and build category map
         const quickJoinChannels: QuickJoinChannel[] = [];
         const categoryMap = new Map<string, string>();
+
+        // The API returns {categories: [...], order: [...], quick_join_enabled: bool}
+        const syncedCategories = response.categories || [];
 
         const categories: CategoryWithChannels[] = syncedCategories.map((sc: SyncedCategory) => {
             // Collect Quick Join channels from this category
@@ -60,8 +63,12 @@ export async function fetchSyncedCategories(
             return category;
         });
 
-        // Store Quick Join channels in ephemeral store
-        ChannelSyncStore.setQuickJoinChannels(serverUrl, teamId, quickJoinChannels, categoryMap);
+        // Store Quick Join channels in ephemeral store (only if quick join is enabled)
+        if (response.quick_join_enabled) {
+            ChannelSyncStore.setQuickJoinChannels(serverUrl, teamId, quickJoinChannels, categoryMap);
+        } else {
+            ChannelSyncStore.setQuickJoinChannels(serverUrl, teamId, [], new Map());
+        }
 
         if (!fetchOnly) {
             await storeCategories(serverUrl, categories, prune);
