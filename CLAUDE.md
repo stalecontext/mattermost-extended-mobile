@@ -16,6 +16,7 @@ This is a customized fork of mattermost-mobile with additional features.
 - **[docs/fork/channel-sync.md](docs/fork/channel-sync.md)** - Channel sync plugin support
 - **[docs/fork/read-receipts.md](docs/fork/read-receipts.md)** - Read receipts plugin support
 - **[docs/fork/emoji-categorizer.md](docs/fork/emoji-categorizer.md)** - Emoji categorizer plugin support
+- **[docs/fork/emoji-usage.md](docs/fork/emoji-usage.md)** - Emoji usage tracker plugin support
 
 ### Custom Features
 
@@ -60,6 +61,20 @@ Mobile support for the `com.github.mattermost-read-receipts` server plugin that 
 - `app/screens/channel_readers/` - Channel readers modal
 
 **Path alias:** `@read_receipts/*` → `app/products/read_receipts/*`
+
+#### Emoji Usage Tracker Plugin Support
+Mobile support for the `com.github.mattermost-emoji-usage` server plugin that tracks emoji usage frequency and provides accurate "recently used" emojis.
+
+**New files:**
+- `app/products/emoji_usage/` - Types, constants, client, actions
+- `app/products/emoji_usage/client/rest.ts` - ClientMix for plugin API
+- `app/products/emoji_usage/actions/remote.ts` - Sync action to fetch and update recently used emojis
+
+**Modified files:**
+- `app/components/post_draft/custom_emoji_picker/emoji_picker_header/emoji_picker_header.tsx` - Added sync button
+- `app/screens/emoji_picker/picker/header/header.tsx` - Added sync button
+
+**Path alias:** `@emoji_usage/*` → `app/products/emoji_usage/*`
 
 ---
 

@@ -3,6 +3,7 @@
 
 import {reportChannelView} from '@read_receipts/actions/remote';
 import ReadReceiptsStore from '@read_receipts/store/read_receipts_store';
+import SwipeContainer from '@swipe_navigation/components/swipe_container';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {Platform, type LayoutChangeEvent, StyleSheet} from 'react-native';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
@@ -134,6 +135,57 @@ const Channel = ({
 
     const showFloatingCallContainer = showJoinCallBanner || isInACall || showIncomingCalls;
 
+    const channelContent = (
+        <>
+            <ChannelHeader
+                channelId={channelId}
+                componentId={componentId}
+                callsEnabledInChannel={isCallsEnabledInChannel}
+                groupCallsAllowed={groupCallsAllowed}
+                isTabletView={isTabletView}
+                shouldRenderBookmarks={shouldRender}
+                shouldRenderChannelBanner={includeChannelBanner}
+            />
+            {Platform.OS === 'ios' ? (
+                <KeyboardProvider>
+                    {shouldRender && (
+                        <ChannelContent
+                            channelId={channelId}
+                            channelType={channelType}
+                            marginTop={marginTop}
+                            scheduledPostCount={scheduledPostCount}
+                            containerHeight={containerHeight}
+                            enabled={isVisible || shouldRender}
+                            onEmojiSearchFocusChange={setIsEmojiSearchFocused}
+                        />
+                    )}
+                </KeyboardProvider>
+            ) : (
+                shouldRender && (
+                    <ChannelContent
+                        channelId={channelId}
+                        channelType={channelType}
+                        marginTop={marginTop}
+                        scheduledPostCount={scheduledPostCount}
+                        containerHeight={containerHeight}
+                        enabled={isVisible || shouldRender}
+                        onEmojiSearchFocusChange={setIsEmojiSearchFocused}
+                    />
+                )
+            )}
+            {showFloatingCallContainer && shouldRender &&
+                <FloatingCallContainer
+                    channelId={channelId}
+                    showJoinCallBanner={showJoinCallBanner}
+                    showIncomingCalls={showIncomingCalls}
+                    isInACall={isInACall}
+                    includeBookmarkBar={includeBookmarkBar}
+                    includeChannelBanner={includeChannelBanner}
+                />
+            }
+        </>
+    );
+
     return (
         <FreezeScreen>
             <SafeAreaView
@@ -144,52 +196,18 @@ const Channel = ({
                 onLayout={onLayout}
                 nativeID={componentId ? SecurityManager.getShieldScreenId(componentId) : undefined}
             >
-                <ChannelHeader
-                    channelId={channelId}
-                    componentId={componentId}
-                    callsEnabledInChannel={isCallsEnabledInChannel}
-                    groupCallsAllowed={groupCallsAllowed}
-                    isTabletView={isTabletView}
-                    shouldRenderBookmarks={shouldRender}
-                    shouldRenderChannelBanner={includeChannelBanner}
-                />
-                {Platform.OS === 'ios' ? (
-                    <KeyboardProvider>
-                        {shouldRender && (
-                            <ChannelContent
-                                channelId={channelId}
-                                channelType={channelType}
-                                marginTop={marginTop}
-                                scheduledPostCount={scheduledPostCount}
-                                containerHeight={containerHeight}
-                                enabled={isVisible || shouldRender}
-                                onEmojiSearchFocusChange={setIsEmojiSearchFocused}
-                            />
-                        )}
-                    </KeyboardProvider>
+                {isTablet ? (
+                    channelContent
                 ) : (
-                    shouldRender && (
-                        <ChannelContent
-                            channelId={channelId}
-                            channelType={channelType}
-                            marginTop={marginTop}
-                            scheduledPostCount={scheduledPostCount}
-                            containerHeight={containerHeight}
-                            enabled={isVisible || shouldRender}
-                            onEmojiSearchFocusChange={setIsEmojiSearchFocused}
-                        />
-                    )
-                )}
-                {showFloatingCallContainer && shouldRender &&
-                    <FloatingCallContainer
+                    <SwipeContainer
                         channelId={channelId}
-                        showJoinCallBanner={showJoinCallBanner}
-                        showIncomingCalls={showIncomingCalls}
-                        isInACall={isInACall}
-                        includeBookmarkBar={includeBookmarkBar}
-                        includeChannelBanner={includeChannelBanner}
-                    />
-                }
+                        componentId={componentId}
+                        onSwipeBack={handleBack}
+                        enabled={!isTablet}
+                    >
+                        {channelContent}
+                    </SwipeContainer>
+                )}
             </SafeAreaView>
         </FreezeScreen>
     );

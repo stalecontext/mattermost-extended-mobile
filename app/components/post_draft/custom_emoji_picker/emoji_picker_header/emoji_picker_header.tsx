@@ -1,14 +1,18 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {syncEmojiUsage} from '@emoji_usage/actions/remote';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {DeviceEventEmitter, Platform, View, type LayoutChangeEvent} from 'react-native';
+import {DeviceEventEmitter, Platform, TouchableOpacity, View, type LayoutChangeEvent} from 'react-native';
 import {useKeyboardState} from 'react-native-keyboard-controller';
-import {Easing, useAnimatedReaction, useSharedValue, withTiming, type SharedValue} from 'react-native-reanimated';
+import Animated, {Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue} from 'react-native-reanimated';
 
+import CompassIcon from '@components/compass_icon';
+import Loading from '@components/loading';
 import SearchBar, {type SearchProps, type SearchRef} from '@components/search';
 import {Events} from '@constants';
 import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {setEmojiSkinTone} from '@hooks/emoji_category_bar';
 import {DEFAULT_INPUT_ACCESSORY_HEIGHT} from '@hooks/useInputAccessoryView';
@@ -40,6 +44,16 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         borderBottomColor: changeOpacity(theme.centerChannelColor, 0.08),
         backgroundColor: theme.centerChannelBg,
     },
+    syncButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 32,
+        height: 32,
+        marginLeft: 8,
+    },
+    syncIcon: {
+        color: changeOpacity(theme.centerChannelColor, 0.56),
+    },
 }));
 
 const EmojiPickerHeader: React.FC<Props> = ({
@@ -50,13 +64,16 @@ const EmojiPickerHeader: React.FC<Props> = ({
     ...props
 }) => {
     const theme = useTheme();
+    const serverUrl = useServerUrl();
     const styles = getStyleSheet(theme);
     const {lastKeyboardHeight: contextLastKeyboardHeight, showInputAccessoryView, isInputAccessoryViewMode} = useKeyboardAnimationContext();
     const containerWidth = useSharedValue(0);
     const isSearching = useSharedValue(false);
     const [showKeyboard, setShowKeyboard] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     const keyboardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isReducingHeight = useRef(false);
+    const syncRotation = useSharedValue(0);
 
     const searchRef = useRef<SearchRef>(null);
 
@@ -215,6 +232,27 @@ const EmojiPickerHeader: React.FC<Props> = ({
         containerWidth.value = e.nativeEvent.layout.width;
     }, [containerWidth]);
 
+    const handleSync = useCallback(async () => {
+        if (isSyncing) {
+            return;
+        }
+        setIsSyncing(true);
+        syncRotation.value = withRepeat(
+            withTiming(360, {duration: 1000, easing: Easing.linear}),
+            -1, // infinite repeats
+        );
+        try {
+            await syncEmojiUsage(serverUrl);
+        } finally {
+            setIsSyncing(false);
+            syncRotation.value = 0;
+        }
+    }, [isSyncing, serverUrl, syncRotation]);
+
+    const syncAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{rotate: `${syncRotation.value}deg`}],
+    }));
+
     return (
         <View
             onLayout={onLayout}
@@ -229,6 +267,27 @@ const EmojiPickerHeader: React.FC<Props> = ({
                     showSoftInputOnFocus={Platform.OS !== 'android' || showKeyboard}
                 />
             </View>
+            <TouchableOpacity
+                onPress={handleSync}
+                style={styles.syncButton}
+                disabled={isSyncing}
+                testID='emoji_picker.header.sync_button'
+            >
+                {isSyncing ? (
+                    <Loading
+                        size='small'
+                        color={styles.syncIcon.color}
+                    />
+                ) : (
+                    <Animated.View style={syncAnimatedStyle}>
+                        <CompassIcon
+                            name='sync'
+                            size={20}
+                            style={styles.syncIcon}
+                        />
+                    </Animated.View>
+                )}
+            </TouchableOpacity>
             <SkinToneSelector
                 skinTone={skinTone}
                 containerWidth={containerWidth}

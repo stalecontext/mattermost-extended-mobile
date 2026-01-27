@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {DeviceEventEmitter} from 'react-native';
+import {DeviceEventEmitter, Dimensions} from 'react-native';
 
 import {General, Navigation as NavigationConstants, Preferences, Screens} from '@constants';
 import {SYSTEM_IDENTIFIERS} from '@constants/database';
@@ -91,7 +91,24 @@ export async function switchToChannel(serverUrl: string, channelId: string, team
                     await dismissAllModalsAndPopToRoot();
                     DeviceEventEmitter.emit(NavigationConstants.NAVIGATION_HOME, Screens.CHANNEL);
                 } else {
-                    await dismissAllModalsAndPopToScreen(Screens.CHANNEL, '', undefined, {topBar: {visible: false}});
+                    // Custom swipe navigation handles back gesture, disable native popGesture
+                    // Use horizontal slide animation instead of default vertical
+                    const screenWidth = Dimensions.get('window').width;
+                    await dismissAllModalsAndPopToScreen(Screens.CHANNEL, '', undefined, {
+                        topBar: {visible: false},
+                        popGesture: false,
+                        animations: {
+                            push: {
+                                content: {
+                                    translationX: {
+                                        from: screenWidth,
+                                        to: 0,
+                                        duration: 300,
+                                    },
+                                },
+                            },
+                        },
+                    });
                 }
 
                 logInfo('channel switch to', channel?.displayName, channelId, (Date.now() - dt), 'ms');

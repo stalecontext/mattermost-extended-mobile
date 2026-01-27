@@ -1,0 +1,307 @@
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
+import React, {useEffect, useState, useCallback} from 'react';
+import {useIntl} from 'react-intl';
+import {SectionList, StyleSheet, Text, View} from 'react-native';
+import {useDerivedValue, type SharedValue} from 'react-native-reanimated';
+
+import {fetchChannelMemberships} from '@actions/remote/channel';
+import Loading from '@components/loading';
+import ProfilePicture from '@components/profile_picture';
+import TouchableWithFeedback from '@components/touchable_with_feedback';
+import {Screens} from '@constants';
+import {useServerUrl} from '@context/server';
+import {useTheme} from '@context/theme';
+import DatabaseManager from '@database/manager';
+import {queryUsersOnChannel} from '@queries/servers/channel';
+import {openUserProfileModal} from '@screens/navigation';
+import {makeStyleSheetFromTheme} from '@utils/theme';
+import {typography} from '@utils/typography';
+import {displayUsername} from '@utils/user';
+
+import {UserStatus, type MemberSection, type MemberWithStatus} from '../../types';
+
+import type UserModel from '@typings/database/models/servers/user';
+import type {AvailableScreens} from '@typings/screens/navigation';
+
+const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
+    container: {
+        flex: 1,
+        backgroundColor: theme.sidebarBg,
+    },
+    header: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.sidebarHeaderTextColor,
+    },
+    headerText: {
+        color: theme.sidebarHeaderTextColor,
+        ...typography('Heading', 300),
+    },
+    sectionHeader: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: theme.sidebarBg,
+    },
+    sectionHeaderText: {
+        color: theme.sidebarHeaderTextColor,
+        ...typography('Body', 75, 'SemiBold'),
+        opacity: 0.72,
+    },
+    memberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+    },
+    memberInfo: {
+        marginLeft: 12,
+        flex: 1,
+    },
+    memberName: {
+        color: theme.sidebarText,
+        ...typography('Body', 200),
+    },
+    memberUsername: {
+        color: theme.sidebarText,
+        ...typography('Body', 75),
+        opacity: 0.64,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyText: {
+        color: theme.sidebarText,
+        ...typography('Body', 200),
+        textAlign: 'center',
+        paddingHorizontal: 16,
+        marginTop: 20,
+        opacity: 0.72,
+    },
+}));
+
+type MemberPanelProps = {
+    channelId: string;
+    componentId?: AvailableScreens;
+    isPanelOpen: SharedValue<boolean>;
+    onMemberPress?: () => void;
+};
+
+const MemberPanel = ({
+    channelId,
+    componentId,
+    isPanelOpen,
+    onMemberPress,
+}: MemberPanelProps) => {
+    const intl = useIntl();
+    const theme = useTheme();
+    const serverUrl = useServerUrl();
+    const styles = getStyleSheet(theme);
+
+    const [members, setMembers] = useState<MemberWithStatus[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [hasFetched, setHasFetched] = useState(false);
+
+    // Track panel open state
+    const panelOpenValue = useDerivedValue(() => isPanelOpen.value);
+
+    const fetchMembers = useCallback(async () => {
+        if (hasFetched || loading) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Fetch channel memberships from server
+            await fetchChannelMemberships(serverUrl, channelId, {page: 0, per_page: 100, sort: 'status'});
+
+            // Query users from database
+            const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+            const users = await queryUsersOnChannel(database, channelId).fetch();
+
+            // Map users to MemberWithStatus
+            const mappedMembers: MemberWithStatus[] = users.map((user: UserModel) => ({
+                id: user.id,
+                username: user.username,
+                nickname: user.nickname || '',
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                status: (user.status as MemberWithStatus['status']) || UserStatus.Offline,
+                lastPictureUpdate: user.lastPictureUpdate || 0,
+            }));
+
+            // Sort by status (online first, then offline)
+            const sortedMembers = mappedMembers.sort((a, b) => {
+                const statusOrder = {
+                    [UserStatus.Online]: 0,
+                    [UserStatus.Away]: 1,
+                    [UserStatus.Dnd]: 2,
+                    [UserStatus.Offline]: 3,
+                };
+                return statusOrder[a.status] - statusOrder[b.status];
+            });
+
+            setMembers(sortedMembers);
+            setHasFetched(true);
+        } catch {
+            // Silently handle errors
+        } finally {
+            setLoading(false);
+        }
+    }, [serverUrl, channelId, hasFetched, loading]);
+
+    // Fetch members when panel opens
+    useEffect(() => {
+        // We use a polling approach since we can't use worklet callbacks directly
+        const interval = setInterval(() => {
+            if (panelOpenValue.value && !hasFetched) {
+                fetchMembers();
+            }
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [panelOpenValue, hasFetched, fetchMembers]);
+
+    const handleMemberPress = useCallback((member: MemberWithStatus) => {
+        openUserProfileModal(intl, theme, {
+            userId: member.id,
+            location: componentId ?? Screens.CHANNEL,
+        });
+        onMemberPress?.();
+    }, [intl, theme, componentId, onMemberPress]);
+
+    const sections: MemberSection[] = React.useMemo(() => {
+        const online: MemberWithStatus[] = [];
+        const offline: MemberWithStatus[] = [];
+
+        members.forEach((member) => {
+            if (member.status === UserStatus.Online ||
+                member.status === UserStatus.Away ||
+                member.status === UserStatus.Dnd) {
+                online.push(member);
+            } else {
+                offline.push(member);
+            }
+        });
+
+        const result: MemberSection[] = [];
+
+        if (online.length > 0) {
+            result.push({
+                title: intl.formatMessage(
+                    {id: 'swipe_navigation.member_panel.online', defaultMessage: 'Online - {count}'},
+                    {count: online.length},
+                ),
+                data: online,
+            });
+        }
+
+        if (offline.length > 0) {
+            result.push({
+                title: intl.formatMessage(
+                    {id: 'swipe_navigation.member_panel.offline', defaultMessage: 'Offline - {count}'},
+                    {count: offline.length},
+                ),
+                data: offline,
+            });
+        }
+
+        return result;
+    }, [members, intl]);
+
+    const renderSectionHeader = useCallback(({section}: {section: MemberSection}) => (
+        <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>
+                {section.title}
+            </Text>
+        </View>
+    ), [styles]);
+
+    const renderItem = useCallback(({item}: {item: MemberWithStatus}) => {
+        const displayName = displayUsername(
+            {
+                id: item.id,
+                username: item.username,
+                nickname: item.nickname,
+                first_name: item.firstName,
+                last_name: item.lastName,
+            } as UserProfile,
+            intl.locale,
+            'full_name',
+        );
+
+        return (
+            <TouchableWithFeedback
+                onPress={() => handleMemberPress(item)}
+                style={styles.memberRow}
+                type='opacity'
+            >
+                <ProfilePicture
+                    author={{id: item.id} as UserProfile}
+                    size={32}
+                    showStatus={true}
+                    statusSize={12}
+                />
+                <View style={styles.memberInfo}>
+                    <Text
+                        style={styles.memberName}
+                        numberOfLines={1}
+                    >
+                        {displayName || item.username}
+                    </Text>
+                    {displayName && displayName !== item.username && (
+                        <Text
+                            style={styles.memberUsername}
+                            numberOfLines={1}
+                        >
+                            {`@${item.username}`}
+                        </Text>
+                    )}
+                </View>
+            </TouchableWithFeedback>
+        );
+    }, [intl.locale, styles, handleMemberPress]);
+
+    const keyExtractor = useCallback((item: MemberWithStatus) => item.id, []);
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.headerText}>
+                    {intl.formatMessage(
+                        {id: 'swipe_navigation.member_panel.title', defaultMessage: 'Members ({count})'},
+                        {count: members.length},
+                    )}
+                </Text>
+            </View>
+            {loading && !hasFetched ? (
+                <View style={styles.loadingContainer}>
+                    <Loading color={theme.sidebarText}/>
+                </View>
+            ) : (
+                <SectionList
+                    sections={sections}
+                    renderSectionHeader={renderSectionHeader}
+                    renderItem={renderItem}
+                    keyExtractor={keyExtractor}
+                    stickySectionHeadersEnabled={true}
+                    ListEmptyComponent={
+                        <Text style={styles.emptyText}>
+                            {intl.formatMessage({
+                                id: 'swipe_navigation.member_panel.no_members',
+                                defaultMessage: 'No members found',
+                            })}
+                        </Text>
+                    }
+                />
+            )}
+        </View>
+    );
+};
+
+export default MemberPanel;
