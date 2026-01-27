@@ -1,11 +1,11 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {Image} from 'expo-image';
 import React, {useMemo} from 'react';
 import {Text, View} from 'react-native';
 
 import {buildAbsoluteUrl} from '@actions/remote/file';
-import ProfilePicture from '@components/profile_picture';
 import {Preferences} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
@@ -19,6 +19,8 @@ type Props = {
     teammateNameDisplay: string;
 };
 
+const AVATAR_SIZE = 32;
+
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     container: {
         flexDirection: 'row',
@@ -26,8 +28,20 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         paddingVertical: 8,
         paddingHorizontal: 20,
     },
-    profilePicture: {
+    avatarContainer: {
         marginRight: 12,
+        width: AVATAR_SIZE,
+        height: AVATAR_SIZE,
+        borderRadius: AVATAR_SIZE / 2,
+        backgroundColor: theme.centerChannelBg,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    avatar: {
+        width: AVATAR_SIZE,
+        height: AVATAR_SIZE,
+        borderRadius: AVATAR_SIZE / 2,
     },
     info: {
         flex: 1,
@@ -64,32 +78,19 @@ function ReaderItem({reader, teammateNameDisplay}: Props) {
 
     const displayName = getReaderDisplayName(reader, teammateNameDisplay);
 
-    // Build the profile image source as an ImageSource object
-    const imageSource = useMemo(() => {
-        if (reader.profile_url) {
-            return {uri: buildAbsoluteUrl(serverUrl, reader.profile_url)};
-        }
-        return undefined;
-    }, [serverUrl, reader.profile_url]);
-
-    // Create a minimal author object for ProfilePicture (it requires author to render the source)
-    const author = useMemo(() => ({
-        id: reader.user_id,
-        username: reader.username,
-        first_name: reader.first_name || '',
-        last_name: reader.last_name || '',
-        nickname: reader.nickname || '',
-        last_picture_update: 0,
-    } as UserProfile), [reader]);
+    // Build profile image URL - use profile_url if provided, otherwise fall back to standard user image endpoint
+    const imageUri = useMemo(() => {
+        const profilePath = reader.profile_url || `/api/v4/users/${reader.user_id}/image`;
+        return buildAbsoluteUrl(serverUrl, profilePath);
+    }, [serverUrl, reader.profile_url, reader.user_id]);
 
     return (
         <View style={styles.container}>
-            <View style={styles.profilePicture}>
-                <ProfilePicture
-                    author={author}
-                    source={imageSource}
-                    size={32}
-                    showStatus={false}
+            <View style={styles.avatarContainer}>
+                <Image
+                    source={{uri: imageUri}}
+                    style={styles.avatar}
+                    cachePolicy='memory-disk'
                 />
             </View>
             <View style={styles.info}>
