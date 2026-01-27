@@ -98,39 +98,45 @@ const AdvancedSettings = ({
 
     return (
         <SettingContainer testID='advanced_settings'>
-            <TouchableOpacity
-                onPress={onPressDeleteData}
-                disabled={!hasData}
-                activeOpacity={hasData ? 1 : 0}
-            >
-                <SettingOption
-                    destructive={true}
-                    icon='trash-can-outline'
-                    info={getFormattedFileSize(dataSize || 0)}
-                    label={intl.formatMessage({id: 'settings.advanced.delete_data', defaultMessage: 'Delete local files'})}
-                    testID='advanced_settings.delete_data.option'
-                    type='none'
-                />
-                <SettingSeparator/>
-            </TouchableOpacity>
-            <SettingOption
-                action={onPressHapticFeedback}
-                label={intl.formatMessage({id: 'settings.advanced.haptic_feedback', defaultMessage: 'Haptic Feedback'})}
-                testID='advanced_settings.haptic_feedback.option'
-                type='arrow'
-            />
-            <SettingSeparator/>
-            {isDevMode && (
+            <React.Fragment key='delete_data'>
                 <TouchableOpacity
-                    onPress={onPressComponentLibrary}
+                    onPress={onPressDeleteData}
+                    disabled={!hasData}
+                    activeOpacity={hasData ? 1 : 0}
                 >
                     <SettingOption
-                        label={intl.formatMessage({id: 'settings.advanced.component_library', defaultMessage: 'Component library'})}
-                        testID='advanced_settings.component_library.option'
+                        destructive={true}
+                        icon='trash-can-outline'
+                        info={getFormattedFileSize(dataSize || 0)}
+                        label={intl.formatMessage({id: 'settings.advanced.delete_data', defaultMessage: 'Delete local files'})}
+                        testID='advanced_settings.delete_data.option'
                         type='none'
                     />
                     <SettingSeparator/>
                 </TouchableOpacity>
+            </React.Fragment>
+            <React.Fragment key='haptic_feedback'>
+                <SettingOption
+                    action={onPressHapticFeedback}
+                    label={intl.formatMessage({id: 'settings.advanced.haptic_feedback', defaultMessage: 'Haptic Feedback'})}
+                    testID='advanced_settings.haptic_feedback.option'
+                    type='arrow'
+                />
+                <SettingSeparator/>
+            </React.Fragment>
+            {isDevMode && (
+                <React.Fragment key='component_library'>
+                    <TouchableOpacity
+                        onPress={onPressComponentLibrary}
+                    >
+                        <SettingOption
+                            label={intl.formatMessage({id: 'settings.advanced.component_library', defaultMessage: 'Component library'})}
+                            testID='advanced_settings.component_library.option'
+                            type='none'
+                        />
+                        <SettingSeparator/>
+                    </TouchableOpacity>
+                </React.Fragment>
             )}
         </SettingContainer>
     );

@@ -74,7 +74,7 @@ const Reaction = ({count, emojiName, highlight, onPress, onLongPress, theme}: Re
         <TouchableOpacity
             onPress={handlePress}
             onLongPress={handleLongPress}
-            delayLongPress={75}
+            delayLongPress={350}
             style={containerStyle}
         >
             <View style={styles.emoji}>

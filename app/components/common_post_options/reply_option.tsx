@@ -36,7 +36,8 @@ const ReplyOption = ({post, bottomSheetId, rootId = ''}: Props) => {
     const serverUrl = useServerUrl();
 
     const handleReply = useCallback(async () => {
-        await dismissBottomSheet(bottomSheetId);
+        // Dismiss without awaiting - don't block the UI
+        dismissBottomSheet(bottomSheetId);
 
         try {
             const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
@@ -66,14 +67,14 @@ const ReplyOption = ({post, bottomSheetId, rootId = ''}: Props) => {
                 }
             }
 
-            const added = DiscordRepliesStore.addPendingReply(
+            const result = DiscordRepliesStore.togglePendingReply(
                 serverUrl,
                 post.channelId,
                 rootId,
                 pendingReply,
             );
 
-            if (!added) {
+            if (result === 'max_reached') {
                 showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
             }
         } catch {

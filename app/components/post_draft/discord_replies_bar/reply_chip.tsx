@@ -4,12 +4,9 @@
 import React, {useCallback} from 'react';
 import {Text, TouchableOpacity, View} from 'react-native';
 
-import {showPermalink} from '@actions/remote/permalink';
 import CompassIcon from '@components/compass_icon';
 import ProfilePicture from '@components/profile_picture';
-import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
-import {usePreventDoubleTap} from '@hooks/utils';
 import {makeStyleSheetFromTheme} from '@utils/theme';
 
 import type {PendingDiscordReply} from '@discord_replies/types';
@@ -38,11 +35,8 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         fontWeight: '600',
         flex: 1,
     },
-    removeButton: {
-        marginLeft: 4,
-        padding: 2,
-    },
     removeIcon: {
+        marginLeft: 4,
         color: theme.centerChannelColor,
         opacity: 0.6,
     },
@@ -55,14 +49,9 @@ type Props = {
 
 const ReplyChip = ({reply, onRemove}: Props) => {
     const theme = useTheme();
-    const serverUrl = useServerUrl();
     const styles = getStyleSheet(theme);
 
     const displayName = reply.nickname || reply.username;
-
-    const handleNavigateToPost = usePreventDoubleTap(useCallback(() => {
-        showPermalink(serverUrl, '', reply.postId);
-    }, [serverUrl, reply.postId]));
 
     const handleRemove = useCallback(() => {
         onRemove(reply.postId);
@@ -71,7 +60,7 @@ const ReplyChip = ({reply, onRemove}: Props) => {
     return (
         <TouchableOpacity
             style={styles.chip}
-            onPress={handleNavigateToPost}
+            onPress={handleRemove}
             activeOpacity={0.7}
         >
             <View style={styles.avatar}>
@@ -87,17 +76,11 @@ const ReplyChip = ({reply, onRemove}: Props) => {
             >
                 {displayName}
             </Text>
-            <TouchableOpacity
-                style={styles.removeButton}
-                onPress={handleRemove}
-                hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-            >
-                <CompassIcon
-                    name='close'
-                    size={14}
-                    style={styles.removeIcon}
-                />
-            </TouchableOpacity>
+            <CompassIcon
+                name='close'
+                size={14}
+                style={styles.removeIcon}
+            />
         </TouchableOpacity>
     );
 };

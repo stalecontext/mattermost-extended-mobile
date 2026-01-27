@@ -24,22 +24,28 @@ class DiscordRepliesStoreSingleton {
         return this.pendingReplies.get(key)!;
     }
 
-    addPendingReply(serverUrl: string, channelId: string, rootId: string, reply: PendingDiscordReply): boolean {
+    /**
+     * Toggle a pending reply - adds if not present, removes if already present.
+     * Returns 'added', 'removed', or 'max_reached'.
+     */
+    togglePendingReply(serverUrl: string, channelId: string, rootId: string, reply: PendingDiscordReply): 'added' | 'removed' | 'max_reached' {
         const subject = this.getSubject(serverUrl, channelId, rootId);
         const current = subject.getValue();
 
-        // Check if we've hit the max limit
-        if (current.length >= MAX_DISCORD_REPLIES) {
-            return false;
+        // Check if this reply already exists - if so, remove it
+        const existingIndex = current.findIndex((r) => r.postId === reply.postId);
+        if (existingIndex !== -1) {
+            subject.next(current.filter((_, i) => i !== existingIndex));
+            return 'removed';
         }
 
-        // Check if this reply already exists
-        if (current.some((r) => r.postId === reply.postId)) {
-            return false;
+        // Check if we've hit the max limit
+        if (current.length >= MAX_DISCORD_REPLIES) {
+            return 'max_reached';
         }
 
         subject.next([...current, reply]);
-        return true;
+        return 'added';
     }
 
     removePendingReply(serverUrl: string, channelId: string, rootId: string, postId: string): void {

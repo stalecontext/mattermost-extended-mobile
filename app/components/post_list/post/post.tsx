@@ -259,14 +259,14 @@ const Post = ({
                         }
                     }
 
-                    const added = DiscordRepliesStore.addPendingReply(
+                    const result = DiscordRepliesStore.togglePendingReply(
                         serverUrl,
                         post.channelId,
                         rootId || '',
                         pendingReply,
                     );
 
-                    if (!added) {
+                    if (result === 'max_reached') {
                         showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
                     }
                 } catch {
@@ -507,7 +507,7 @@ const Post = ({
                 testID={itemTestID}
                 onPress={handlePress}
                 onLongPress={showPostOptions}
-                delayLongPress={75}
+                delayLongPress={175}
                 underlayColor={changeOpacity(theme.centerChannelColor, 0.1)}
                 style={styles.postContent}
             >
