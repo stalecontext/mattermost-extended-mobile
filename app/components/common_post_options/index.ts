@@ -3,6 +3,7 @@
 
 export {default as BaseOption} from './base_option';
 export {default as CopyPermalinkOption} from './copy_permalink_option';
+export {default as CreateThreadOption} from './create_thread_option';
 export {default as FollowThreadOption} from './follow_thread_option';
 export {default as QuoteReplyOption} from './quote_reply_option';
 export {default as ReplyOption} from './reply_option';

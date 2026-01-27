@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {stripQuotes} from '@discord_replies/utils';
 import React, {useCallback} from 'react';
 import {defineMessages} from 'react-intl';
 
@@ -47,7 +48,7 @@ const QuoteReplyOption = ({post, bottomSheetId, rootId = ''}: Props) => {
                 userId: post.userId,
                 username: user?.username || '',
                 nickname: user?.nickname || '',
-                text: post.message,
+                text: stripQuotes(post.message),
                 hasImage: false,
                 hasVideo: false,
                 channelId: post.channelId,
@@ -72,9 +73,7 @@ const QuoteReplyOption = ({post, bottomSheetId, rootId = ''}: Props) => {
                 pendingReply,
             );
 
-            if (added) {
-                showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_ADDED});
-            } else {
+            if (!added) {
                 showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
             }
         } catch {

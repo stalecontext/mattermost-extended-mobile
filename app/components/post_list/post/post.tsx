@@ -3,6 +3,7 @@
 
 import AgentPost from '@agents/components/agent_post';
 import {isAgentPost} from '@agents/utils';
+import {stripQuotes} from '@discord_replies/utils';
 import React, {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {Platform, type StyleProp, View, type ViewStyle, TouchableHighlight} from 'react-native';
@@ -10,7 +11,6 @@ import {KeyboardController} from 'react-native-keyboard-controller';
 
 import {removePost} from '@actions/local/post';
 import {showPermalink} from '@actions/remote/permalink';
-import {fetchAndSwitchToThread} from '@actions/remote/thread';
 import CallsCustomMessage from '@calls/components/calls_custom_message';
 import {isCallsCustomMessage} from '@calls/utils';
 import UnrevealedBurnOnReadPost from '@components/post_list/post/burn_on_read/unrevealed';
@@ -18,15 +18,21 @@ import SystemAvatar from '@components/system_avatar';
 import SystemHeader from '@components/system_header';
 import {POST_TIME_TO_FAIL} from '@constants/post';
 import * as Screens from '@constants/screens';
+import {SNACK_BAR_TYPE} from '@constants/snack_bar';
 import {useKeyboardAnimationContext} from '@context/keyboard_animation';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
+import DatabaseManager from '@database/manager';
 import {useIsTablet} from '@hooks/device';
 import PerformanceMetricsManager from '@managers/performance_metrics_manager';
+import {getCurrentTeamId} from '@queries/servers/system';
+import {getUserById} from '@queries/servers/user';
 import {openAsBottomSheet} from '@screens/navigation';
+import DiscordRepliesStore from '@store/discord_replies_store';
 import {isBoRPost, isUnrevealedBoRPost} from '@utils/bor';
 import {hasJumboEmojiOnly} from '@utils/emoji/helpers';
 import {fromAutoResponder, isFromWebhook, isPostFailed, isPostPendingOrFailed, isSystemMessage} from '@utils/post';
+import {showSnackBar} from '@utils/snack_bar';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
 import Avatar from './avatar';
@@ -38,7 +44,7 @@ import PreHeader from './pre_header';
 import SystemMessage from './system_message';
 import UnreadDot from './unread_dot';
 
-import type {DiscordReplyData} from '@discord_replies/types';
+import type {DiscordReplyData, PendingDiscordReply} from '@discord_replies/types';
 import type PostModel from '@typings/database/models/servers/post';
 import type ThreadModel from '@typings/database/models/servers/thread';
 import type UserModel from '@typings/database/models/servers/user';
@@ -201,16 +207,55 @@ const Post = ({
         } else if (isValidSystemMessage && !hasBeenDeleted && !isPendingOrFailed) {
             // BoR posts cannot have replies, so don't open threads screen for them
             if (!borPost && [Screens.CHANNEL, Screens.PERMALINK].includes(location)) {
-                await blurAndDismissKeyboard();
-                const postRootId = post.rootId || post.id;
-                fetchAndSwitchToThread(serverUrl, postRootId);
+                // Add to pending discord replies instead of opening thread
+                try {
+                    const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                    const user = await getUserById(database, post.userId);
+                    const teamId = await getCurrentTeamId(database);
+
+                    const pendingReply: PendingDiscordReply = {
+                        postId: post.id,
+                        userId: post.userId,
+                        username: user?.username || '',
+                        nickname: user?.nickname || '',
+                        text: stripQuotes(post.message),
+                        hasImage: false,
+                        hasVideo: false,
+                        channelId: post.channelId,
+                        teamId,
+                    };
+
+                    // Check for images/videos in metadata
+                    if (post.metadata?.files) {
+                        for (const file of post.metadata.files) {
+                            if (file.mime_type?.startsWith('image/')) {
+                                pendingReply.hasImage = true;
+                            } else if (file.mime_type?.startsWith('video/')) {
+                                pendingReply.hasVideo = true;
+                            }
+                        }
+                    }
+
+                    const added = DiscordRepliesStore.addPendingReply(
+                        serverUrl,
+                        post.channelId,
+                        rootId || '',
+                        pendingReply,
+                    );
+
+                    if (!added) {
+                        showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
+                    }
+                } catch {
+                    showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
+                }
             }
         }
 
         setTimeout(() => {
             pressDetected.current = false;
         }, 300);
-    }, [location, isAutoResponder, isSystemPost, isEphemeral, hasBeenDeleted, isPendingOrFailed, serverUrl, post, borPost, blurAndDismissKeyboard]);
+    }, [location, isAutoResponder, isSystemPost, isEphemeral, hasBeenDeleted, isPendingOrFailed, serverUrl, post, borPost, rootId]);
 
     const handlePress = useCallback(() => {
         pressDetected.current = true;

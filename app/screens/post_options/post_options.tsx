@@ -6,7 +6,7 @@ import {useManagedConfig} from '@mattermost/react-native-emm';
 import React, {useMemo} from 'react';
 import {ScrollView} from 'react-native';
 
-import {CopyPermalinkOption, FollowThreadOption, QuoteReplyOption, ReplyOption, SaveOption} from '@components/common_post_options';
+import {CopyPermalinkOption, CreateThreadOption, FollowThreadOption, ReplyOption, SaveOption} from '@components/common_post_options';
 import CopyTextOption from '@components/copy_text_option';
 import {ITEM_HEIGHT} from '@components/option_item';
 import {Screens} from '@constants';
@@ -114,13 +114,13 @@ const PostOptions = ({
                     <ReplyOption
                         bottomSheetId={Screens.POST_OPTIONS}
                         post={post}
+                        rootId={post.rootId}
                     />
                 }
                 {canReply &&
-                    <QuoteReplyOption
+                    <CreateThreadOption
                         bottomSheetId={Screens.POST_OPTIONS}
                         post={post}
-                        rootId={post.rootId}
                     />
                 }
                 {shouldRenderFollow &&

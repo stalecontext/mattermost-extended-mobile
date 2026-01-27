@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {stripQuotes} from '@discord_replies/utils';
 import React, {useCallback, useMemo, useState} from 'react';
 import {type LayoutChangeEvent, ScrollView, useWindowDimensions, View} from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -86,6 +87,15 @@ const Message = ({currentUser, isHighlightWithoutNotificationLicensed, highlight
         return isChannelMentions(post.props?.channel_mentions) ? post.props.channel_mentions : {};
     }, [post.props?.channel_mentions]);
 
+    // Strip discord reply quotes from message when discord_replies exists
+    const messageValue = useMemo(() => {
+        const hasDiscordReplies = Array.isArray(post.props?.discord_replies) && post.props.discord_replies.length > 0;
+        if (hasDiscordReplies) {
+            return stripQuotes(post.message);
+        }
+        return post.message;
+    }, [post.message, post.props?.discord_replies]);
+
     return (
         <>
             <Animated.View style={animatedStyle}>
@@ -110,7 +120,7 @@ const Message = ({currentUser, isHighlightWithoutNotificationLicensed, highlight
                             layoutWidth={layoutWidth}
                             location={location}
                             postId={post.id}
-                            value={post.message}
+                            value={messageValue}
                             mentionKeys={mentionKeys}
                             highlightKeys={highlightKeys}
                             searchPatterns={searchPatterns}

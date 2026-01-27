@@ -17,7 +17,9 @@ import {Events, Screens} from '@constants';
 import {NOTIFY_ALL_MEMBERS} from '@constants/post_draft';
 import {MESSAGE_TYPE, SNACK_BAR_TYPE} from '@constants/snack_bar';
 import {useServerUrl} from '@context/server';
+import DatabaseManager from '@database/manager';
 import DraftUploadManager from '@managers/draft_upload_manager';
+import {getTeamById} from '@queries/servers/team';
 import DiscordRepliesStore from '@store/discord_replies_store';
 import * as DraftUtils from '@utils/draft';
 import {isReactionMatch} from '@utils/emoji/helpers';
@@ -117,7 +119,18 @@ export const useHandleSendMessage = ({
         // Build the final message with quotes prepended
         let finalMessage = value;
         if (pendingReplies.length > 0) {
-            const quoteBlock = formatAllDiscordReplies(pendingReplies, serverUrl);
+            // Get team name for proper permalink formatting (matching desktop plugin)
+            let teamName: string | undefined;
+            if (pendingReplies[0]?.teamId) {
+                try {
+                    const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                    const team = await getTeamById(database, pendingReplies[0].teamId);
+                    teamName = team?.name;
+                } catch {
+                    // Fall back to _redirect URL if team lookup fails
+                }
+            }
+            const quoteBlock = formatAllDiscordReplies(pendingReplies, serverUrl, teamName);
             finalMessage = quoteBlock + '\n\n' + value;
         }
 

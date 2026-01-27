@@ -829,6 +829,7 @@
   "mobile.discord_replies.replying_to": "Replying to",
   "mobile.post_info.add_reaction": "Add Reaction",
   "mobile.post_info.copy_text": "Copy Text",
+  "mobile.post_info.create_thread": "Create Thread",
   "mobile.post_info.mark_unread": "Mark as Unread",
   "mobile.post_info.pin": "Pin to Channel",
   "mobile.post_info.reply": "Reply",
