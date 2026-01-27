@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {fetchChannelFollowers} from '@read_receipts/actions/remote';
 import React, {useCallback, useEffect, useState} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
 import {FlatList, Text, View} from 'react-native';
@@ -10,14 +11,12 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {useIsTablet} from '@hooks/device';
-import {fetchChannelFollowers} from '@read_receipts/actions/remote';
 import BottomSheet from '@screens/bottom_sheet';
 import ReaderItem from '@screens/post_readers/reader_item';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-import type {ChannelReadersResponse, Reader} from '@read_receipts/types';
-import type {AvailableScreens} from '@typings/screens/navigation';
+import type {Reader} from '@read_receipts/types';
 
 const messages = defineMessages({
     title: {
@@ -32,7 +31,6 @@ const messages = defineMessages({
 
 type Props = {
     channelId: string;
-    location: AvailableScreens;
     teammateNameDisplay: string;
 };
 
@@ -61,7 +59,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
-function ChannelReaders({channelId, location, teammateNameDisplay}: Props) {
+function ChannelReaders({channelId, teammateNameDisplay}: Props) {
     const theme = useTheme();
     const intl = useIntl();
     const serverUrl = useServerUrl();

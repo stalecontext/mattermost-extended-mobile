@@ -1,23 +1,21 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useMemo} from 'react';
+import {fetchChannelFollowers} from '@read_receipts/actions/remote';
+import {useChannelFollowers, useReadReceiptsPermissions} from '@read_receipts/store';
+import React, {useCallback, useEffect} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
-import {Keyboard, Text, TouchableOpacity, View} from 'react-native';
+import {Keyboard, Text, TouchableOpacity} from 'react-native';
 
-import {buildAbsoluteUrl} from '@actions/remote/file';
-import ProfilePicture from '@components/profile_picture';
+import CompassIcon from '@components/compass_icon';
 import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {useIsTablet} from '@hooks/device';
-import {fetchChannelFollowers} from '@read_receipts/actions/remote';
-import {useChannelFollowers, useReadReceiptsPermissions} from '@read_receipts/store';
 import {bottomSheetModalOptions, showModal, showModalOverCurrentContext} from '@screens/navigation';
-import {makeStyleSheetFromTheme} from '@utils/theme';
+import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-import type {Reader} from '@read_receipts/types';
 import type {AvailableScreens} from '@typings/screens/navigation';
 
 const messages = defineMessages({
@@ -31,10 +29,6 @@ const messages = defineMessages({
     },
 });
 
-const MAX_AVATARS = 5;
-const AVATAR_SIZE = 24;
-const AVATAR_OVERLAP = -6;
-
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     container: {
         paddingVertical: 8,
@@ -42,23 +36,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        width: '100%',
-    },
-    avatarsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatarWrapper: {
-        borderWidth: 2,
-        borderColor: theme.centerChannelBg,
-        borderRadius: AVATAR_SIZE / 2 + 2,
         backgroundColor: theme.centerChannelBg,
     },
-    avatarOverlap: {
-        marginLeft: AVATAR_OVERLAP,
-    },
     text: {
-        color: theme.centerChannelColor,
+        color: changeOpacity(theme.centerChannelColor, 0.64),
         ...typography('Body', 75),
     },
 }));
@@ -108,17 +89,6 @@ function ChannelFollowersIndicator({channelId, channelType, location = Screens.C
         }
     }, [channelId, location, isTablet, intl, theme]);
 
-    // Build avatar sources
-    const avatarSources = useMemo(() => {
-        if (!followers?.readers) {
-            return [];
-        }
-        return followers.readers.slice(0, MAX_AVATARS).map((reader: Reader) => ({
-            userId: reader.user_id,
-            source: reader.profile_url ? {uri: buildAbsoluteUrl(serverUrl, reader.profile_url)} : undefined,
-        }));
-    }, [followers?.readers, serverUrl]);
-
     if (!shouldShow || !followers || followers.readers.length === 0) {
         return null;
     }
@@ -129,23 +99,11 @@ function ChannelFollowersIndicator({channelId, channelType, location = Screens.C
             style={styles.container}
             testID='channel_followers_indicator'
         >
-            <View style={styles.avatarsContainer}>
-                {avatarSources.map((avatar, index) => (
-                    <View
-                        key={avatar.userId}
-                        style={[
-                            styles.avatarWrapper,
-                            index > 0 && styles.avatarOverlap,
-                        ]}
-                    >
-                        <ProfilePicture
-                            source={avatar.source}
-                            size={AVATAR_SIZE}
-                            showStatus={false}
-                        />
-                    </View>
-                ))}
-            </View>
+            <CompassIcon
+                color={changeOpacity(theme.centerChannelColor, 0.64)}
+                name='eye-outline'
+                size={16}
+            />
             <Text
                 style={styles.text}
                 testID='channel_followers_indicator.text'

@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
+import ReadReceiptsStore from '@read_receipts/store/read_receipts_store';
 import {combineLatest, of as of$, Observable} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
 
@@ -16,7 +17,6 @@ import {observePermissionForChannel, observePermissionForPost} from '@queries/se
 import {observeConfigIntValue, observeConfigValue, observeLicense} from '@queries/servers/system';
 import {observeIsCRTEnabled, observeThreadById} from '@queries/servers/thread';
 import {observeCurrentUser} from '@queries/servers/user';
-import ReadReceiptsStore from '@read_receipts/store/read_receipts_store';
 import {isBoRPost, isUnrevealedBoRPost} from '@utils/bor';
 import {toMilliseconds} from '@utils/datetime';
 import {isMinimumServerVersion} from '@utils/helpers';
@@ -167,11 +167,13 @@ const enhanced = withObservables([], ({combinedPost, post, showAddReaction, sour
             if (!perms.enable_dropdown_menu && !perms.enable_post_action) {
                 return of$(false);
             }
+
             // Check DM restriction
             const isDmOrGm = ch?.type === 'D' || ch?.type === 'G';
             if (isDmOrGm && !perms.enable_in_direct_messages) {
                 return of$(false);
             }
+
             // Don't show for system messages
             if (isSystemMessage(post)) {
                 return of$(false);

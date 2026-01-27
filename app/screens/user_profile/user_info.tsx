@@ -1,11 +1,11 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import UserLastSeen from '@read_receipts/components/user_last_seen';
 import React, {useEffect, useState, useRef} from 'react';
 
 import {fetchCustomProfileAttributes} from '@actions/remote/custom_profile';
 import {useServerUrl} from '@context/server';
-import UserLastSeen from '@read_receipts/components/user_last_seen';
 import {getUserCustomStatus, sortCustomProfileAttributes} from '@utils/user';
 
 import CustomAttributes from './custom_attributes';

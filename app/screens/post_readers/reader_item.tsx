@@ -5,8 +5,8 @@ import React, {useMemo} from 'react';
 import {Text, View} from 'react-native';
 
 import {buildAbsoluteUrl} from '@actions/remote/file';
-import {Preferences} from '@constants';
 import ProfilePicture from '@components/profile_picture';
+import {Preferences} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
@@ -72,10 +72,21 @@ function ReaderItem({reader, teammateNameDisplay}: Props) {
         return undefined;
     }, [serverUrl, reader.profile_url]);
 
+    // Create a minimal author object for ProfilePicture (it requires author to render the source)
+    const author = useMemo(() => ({
+        id: reader.user_id,
+        username: reader.username,
+        first_name: reader.first_name || '',
+        last_name: reader.last_name || '',
+        nickname: reader.nickname || '',
+        last_picture_update: 0,
+    } as UserProfile), [reader]);
+
     return (
         <View style={styles.container}>
             <View style={styles.profilePicture}>
                 <ProfilePicture
+                    author={author}
                     source={imageSource}
                     size={32}
                     showStatus={false}
@@ -92,7 +103,7 @@ function ReaderItem({reader, teammateNameDisplay}: Props) {
                     style={styles.username}
                     numberOfLines={1}
                 >
-                    @{reader.username}
+                    {`@${reader.username}`}
                 </Text>
             </View>
         </View>

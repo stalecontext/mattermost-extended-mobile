@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {PortalProvider} from '@gorhom/portal';
+import ChannelFollowersIndicator from '@read_receipts/components/channel_followers_indicator';
 import React from 'react';
 import {StyleSheet} from 'react-native';
 
@@ -9,7 +10,6 @@ import {KeyboardAwarePostDraftContainer} from '@components/keyboard_aware_post_d
 import PostDraft from '@components/post_draft';
 import ScheduledPostIndicator from '@components/scheduled_post_indicator';
 import {Screens} from '@constants';
-import ChannelFollowersIndicator from '@read_receipts/components/channel_followers_indicator';
 
 import ChannelPostList from './channel_post_list';
 

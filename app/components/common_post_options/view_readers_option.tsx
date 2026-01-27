@@ -3,7 +3,7 @@
 
 import React, {useCallback} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
-import {Keyboard, Platform} from 'react-native';
+import {Keyboard} from 'react-native';
 
 import {BaseOption} from '@components/common_post_options';
 import {Screens} from '@constants';

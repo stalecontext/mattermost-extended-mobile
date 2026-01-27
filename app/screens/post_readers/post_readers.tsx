@@ -1,24 +1,23 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {fetchPostReaders} from '@read_receipts/actions/remote';
 import React, {useCallback, useEffect, useState} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
 import {FlatList, Text, View} from 'react-native';
 
 import Loading from '@components/loading';
 import {Screens} from '@constants';
-import {useIsTablet} from '@hooks/device';
-import {fetchPostReaders} from '@read_receipts/actions/remote';
-import BottomSheet from '@screens/bottom_sheet';
-import {useTheme} from '@context/theme';
 import {useServerUrl} from '@context/server';
+import {useTheme} from '@context/theme';
+import {useIsTablet} from '@hooks/device';
+import BottomSheet from '@screens/bottom_sheet';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
 import ReaderItem from './reader_item';
 
-import type {PostReadersResponse, Reader} from '@read_receipts/types';
-import type {AvailableScreens} from '@typings/screens/navigation';
+import type {Reader} from '@read_receipts/types';
 
 const messages = defineMessages({
     title: {
@@ -33,7 +32,6 @@ const messages = defineMessages({
 
 type Props = {
     postId: string;
-    location: AvailableScreens;
     teammateNameDisplay: string;
 };
 
@@ -62,7 +60,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
-function PostReaders({postId, location, teammateNameDisplay}: Props) {
+function PostReaders({postId, teammateNameDisplay}: Props) {
     const theme = useTheme();
     const intl = useIntl();
     const serverUrl = useServerUrl();

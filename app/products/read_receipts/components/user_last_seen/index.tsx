@@ -1,6 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {fetchUserLastChannel} from '@read_receipts/actions/remote';
+import {useReadReceiptsPermissions} from '@read_receipts/store';
 import React, {useEffect, useState} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
 import {Text, View} from 'react-native';
@@ -8,8 +10,6 @@ import {Text, View} from 'react-native';
 import CompassIcon from '@components/compass_icon';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
-import {fetchUserLastChannel} from '@read_receipts/actions/remote';
-import {useReadReceiptsPermissions} from '@read_receipts/store';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
@@ -161,10 +161,7 @@ function UserLastSeen({userId}: Props) {
                 testID='user_profile.last_seen'
             >
                 {intl.formatMessage(messages.lastSeenIn, {channel: formattedChannel})}
-                {' '}
-                <Text style={{color: changeOpacity(theme.centerChannelColor, 0.56)}}>
-                    ({relativeTime})
-                </Text>
+                {` (${relativeTime})`}
             </Text>
         </View>
     );
