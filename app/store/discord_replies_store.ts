@@ -57,6 +57,17 @@ class DiscordRepliesStoreSingleton {
         }
     }
 
+    updatePendingReply(serverUrl: string, channelId: string, rootId: string, postId: string, updates: Partial<PendingDiscordReply>): void {
+        const subject = this.getSubject(serverUrl, channelId, rootId);
+        const current = subject.getValue();
+        const index = current.findIndex((r) => r.postId === postId);
+        if (index !== -1) {
+            const updated = [...current];
+            updated[index] = {...updated[index], ...updates};
+            subject.next(updated);
+        }
+    }
+
     clearPendingReplies(serverUrl: string, channelId: string, rootId: string): void {
         const key = makeKey(serverUrl, channelId, rootId);
         const subject = this.pendingReplies.get(key);

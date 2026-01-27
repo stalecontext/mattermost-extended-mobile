@@ -35,51 +35,70 @@ const messages = defineMessages({
 const ReplyOption = ({post, bottomSheetId, rootId = ''}: Props) => {
     const serverUrl = useServerUrl();
 
-    const handleReply = useCallback(async () => {
+    const handleReply = useCallback(() => {
         // Dismiss without awaiting - don't block the UI
         dismissBottomSheet(bottomSheetId);
 
-        try {
-            const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
-            const user = await getUserById(database, post.userId);
-            const teamId = await getCurrentTeamId(database);
-
-            const pendingReply: PendingDiscordReply = {
-                postId: post.id,
-                userId: post.userId,
-                username: user?.username || '',
-                nickname: user?.nickname || '',
-                text: stripQuotes(post.message),
-                hasImage: false,
-                hasVideo: false,
-                channelId: post.channelId,
-                teamId,
-            };
-
-            // Check for images/videos in metadata
-            if (post.metadata?.files) {
-                for (const file of post.metadata.files) {
-                    if (file.mime_type?.startsWith('image/')) {
-                        pendingReply.hasImage = true;
-                    } else if (file.mime_type?.startsWith('video/')) {
-                        pendingReply.hasVideo = true;
-                    }
+        // Build pending reply with info we have synchronously
+        let hasImage = false;
+        let hasVideo = false;
+        if (post.metadata?.files) {
+            for (const file of post.metadata.files) {
+                if (file.mime_type?.startsWith('image/')) {
+                    hasImage = true;
+                } else if (file.mime_type?.startsWith('video/')) {
+                    hasVideo = true;
                 }
             }
+        }
 
-            const result = DiscordRepliesStore.togglePendingReply(
-                serverUrl,
-                post.channelId,
-                rootId,
-                pendingReply,
-            );
+        const pendingReply: PendingDiscordReply = {
+            postId: post.id,
+            userId: post.userId,
+            username: '',
+            nickname: '',
+            text: stripQuotes(post.message),
+            hasImage,
+            hasVideo,
+            channelId: post.channelId,
+            teamId: '',
+        };
 
-            if (result === 'max_reached') {
-                showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
-            }
-        } catch {
-            // Error getting user info, still try to add with available data
+        // Toggle immediately for instant feedback
+        const result = DiscordRepliesStore.togglePendingReply(
+            serverUrl,
+            post.channelId,
+            rootId,
+            pendingReply,
+        );
+
+        if (result === 'max_reached') {
             showSnackBar({barType: SNACK_BAR_TYPE.DISCORD_REPLY_MAX_REACHED});
+        } else if (result === 'added') {
+            // Fetch user info async and update the reply
+            try {
+                const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                Promise.all([
+                    getUserById(database, post.userId),
+                    getCurrentTeamId(database),
+                ]).then(([user, teamId]) => {
+                    DiscordRepliesStore.updatePendingReply(
+                        serverUrl,
+                        post.channelId,
+                        rootId,
+                        post.id,
+                        {
+                            username: user?.username || '',
+                            nickname: user?.nickname || '',
+                            teamId,
+                        },
+                    );
+                }).catch(() => {
+                    // Ignore - reply already added, just missing user info
+                });
+            } catch {
+                // Ignore - reply already added
+            }
         }
     }, [bottomSheetId, post, rootId, serverUrl]);
 
