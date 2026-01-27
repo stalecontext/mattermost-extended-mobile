@@ -2,7 +2,9 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useMemo} from 'react';
-import {View} from 'react-native';
+import {Text, TouchableOpacity, View} from 'react-native';
+
+import {showPermalink} from '@actions/remote/permalink';
 
 import {removePost} from '@actions/local/post';
 import CompassIcon from '@components/compass_icon';

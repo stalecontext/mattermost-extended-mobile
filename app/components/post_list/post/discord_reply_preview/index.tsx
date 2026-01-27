@@ -18,21 +18,12 @@ const MAX_PREVIEW_LENGTH = 100;
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     container: {
-        marginLeft: 12,
-        marginBottom: 4,
+        marginBottom: 0,
     },
     replyRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 2,
-    },
-    connectorLine: {
-        width: 2,
-        height: 12,
-        backgroundColor: theme.centerChannelColor,
-        opacity: 0.3,
-        marginRight: 6,
-        borderRadius: 1,
     },
     avatar: {
         marginRight: 4,
@@ -88,7 +79,6 @@ const DiscordReplyPreview = ({replies}: Props) => {
                         onPress={() => handleNavigateToPost(reply.post_id)}
                         activeOpacity={0.7}
                     >
-                        <View style={styles.connectorLine}/>
                         <View style={styles.avatar}>
                             <ProfilePicture
                                 author={{id: reply.user_id} as UserProfile}

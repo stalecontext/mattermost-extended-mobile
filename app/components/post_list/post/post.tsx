@@ -13,6 +13,7 @@ import {removePost} from '@actions/local/post';
 import {showPermalink} from '@actions/remote/permalink';
 import CallsCustomMessage from '@calls/components/calls_custom_message';
 import {isCallsCustomMessage} from '@calls/utils';
+import CompassIcon from '@components/compass_icon';
 import UnrevealedBurnOnReadPost from '@components/post_list/post/burn_on_read/unrevealed';
 import SystemAvatar from '@components/system_avatar';
 import SystemHeader from '@components/system_header';
@@ -115,6 +116,20 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
             marginBottom: 5,
             marginRight: 10,
             marginTop: 13,
+        },
+        replyPreviewContainer: {
+            marginTop: 8,
+            marginBottom: -8,
+        },
+        replyPreviewPlaceholder: {
+            width: 32,
+            marginRight: 10,
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+        },
+        replyIcon: {
+            transform: [{scaleX: -1}],
+            marginBottom: 2,
         },
         rightColumn: {
             flex: 1,
@@ -504,9 +519,24 @@ const Post = ({
                         skipPinnedHeader={skipPinnedHeader}
                     />
                     {discordReplies.length > 0 && (
-                        <DiscordReplyPreview
-                            replies={discordReplies}
-                        />
+                        <View style={[styles.container, styles.replyPreviewContainer]}>
+                            <View style={styles.replyPreviewPlaceholder}>
+                                {discordReplies.map((reply) => (
+                                    <CompassIcon
+                                        key={reply.post_id}
+                                        name='reply-outline'
+                                        size={16}
+                                        color={changeOpacity(theme.centerChannelColor, 0.5)}
+                                        style={styles.replyIcon}
+                                    />
+                                ))}
+                            </View>
+                            <View style={styles.rightColumn}>
+                                <DiscordReplyPreview
+                                    replies={discordReplies}
+                                />
+                            </View>
+                        </View>
                     )}
                     <View style={[styles.container, consecutiveStyle]}>
                         {postAvatar}
