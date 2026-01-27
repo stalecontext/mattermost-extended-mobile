@@ -110,7 +110,7 @@ function ChannelFollowersIndicator({channelId, channelType, location = Screens.C
         }
     }, [channelId, location, isTablet, intl, theme]);
 
-    if (!shouldShow || !followers || followers.readers.length === 0) {
+    if (!shouldShow || !followers?.readers?.length) {
         return null;
     }
 
