@@ -65,13 +65,13 @@ const UserInfo = ({
     return (
         <>
             {showCustomStatus && <UserProfileCustomStatus customStatus={customStatus!}/>}
+            <UserLastSeen userId={user.id}/>
             <CustomAttributes
                 nickname={showNickname ? user.nickname : undefined}
                 position={showPosition ? user.position : undefined}
                 localTime={showLocalTime ? localTime : undefined}
                 customAttributes={customAttributes}
             />
-            <UserLastSeen userId={user.id}/>
         </>
     );
 };

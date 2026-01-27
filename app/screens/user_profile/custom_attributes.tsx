@@ -58,7 +58,7 @@ const CustomAttributes = ({nickname, position, localTime, customAttributes}: Pro
     mergeAttributes.push(...(customAttributes ?? []));
 
     // remove any empty objects
-    const attributes: CustomAttribute[] = mergeAttributes.filter((v: CustomAttribute) => Object.entries(v).length !== 0);
+    const attributes: CustomAttribute[] = mergeAttributes.filter((v: CustomAttribute) => v && Object.entries(v).length !== 0);
     return (
         <View style={styles.container}>
             <FlatList
