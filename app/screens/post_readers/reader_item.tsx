@@ -1,12 +1,13 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
-import {useIntl} from 'react-intl';
+import React, {useMemo} from 'react';
 import {Text, View} from 'react-native';
 
+import {buildAbsoluteUrl} from '@actions/remote/file';
 import {Preferences} from '@constants';
 import ProfilePicture from '@components/profile_picture';
+import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
@@ -39,11 +40,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         color: changeOpacity(theme.centerChannelColor, 0.64),
         ...typography('Body', 75),
     },
-    readAt: {
-        color: changeOpacity(theme.centerChannelColor, 0.56),
-        ...typography('Body', 75),
-        marginLeft: 'auto',
-    },
 }));
 
 /**
@@ -63,46 +59,24 @@ function getReaderDisplayName(reader: Reader, teammateNameDisplay: string): stri
 
 function ReaderItem({reader, teammateNameDisplay}: Props) {
     const theme = useTheme();
-    const intl = useIntl();
+    const serverUrl = useServerUrl();
     const styles = getStyleSheet(theme);
 
     const displayName = getReaderDisplayName(reader, teammateNameDisplay);
 
-    // Format relative time
-    const formatRelativeTime = (timestamp: number): string => {
-        const now = Date.now();
-        const diff = now - timestamp;
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (days > 0) {
-            return intl.formatMessage(
-                {id: 'read_receipts.days_ago', defaultMessage: '{count, plural, one {# day ago} other {# days ago}}'},
-                {count: days},
-            );
+    // Build the profile image source as an ImageSource object
+    const imageSource = useMemo(() => {
+        if (reader.profile_url) {
+            return {uri: buildAbsoluteUrl(serverUrl, reader.profile_url)};
         }
-        if (hours > 0) {
-            return intl.formatMessage(
-                {id: 'read_receipts.hours_ago', defaultMessage: '{count, plural, one {# hour ago} other {# hours ago}}'},
-                {count: hours},
-            );
-        }
-        if (minutes > 0) {
-            return intl.formatMessage(
-                {id: 'read_receipts.minutes_ago', defaultMessage: '{count, plural, one {# minute ago} other {# minutes ago}}'},
-                {count: minutes},
-            );
-        }
-        return intl.formatMessage({id: 'read_receipts.just_now', defaultMessage: 'Just now'});
-    };
+        return undefined;
+    }, [serverUrl, reader.profile_url]);
 
     return (
         <View style={styles.container}>
             <View style={styles.profilePicture}>
                 <ProfilePicture
-                    source={reader.profile_url}
+                    source={imageSource}
                     size={32}
                     showStatus={false}
                 />
@@ -121,9 +95,6 @@ function ReaderItem({reader, teammateNameDisplay}: Props) {
                     @{reader.username}
                 </Text>
             </View>
-            <Text style={styles.readAt}>
-                {formatRelativeTime(reader.read_at)}
-            </Text>
         </View>
     );
 }
