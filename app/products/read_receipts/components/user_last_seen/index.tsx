@@ -3,11 +3,12 @@
 
 import {fetchUserLastChannel} from '@read_receipts/actions/remote';
 import {useReadReceiptsPermissions} from '@read_receipts/store';
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
-import {Text, View} from 'react-native';
+import {Text, TouchableOpacity, View} from 'react-native';
 
-import CompassIcon from '@components/compass_icon';
+import {switchToChannelById} from '@actions/remote/channel';
+import FormattedText from '@components/formatted_text';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
@@ -16,32 +17,44 @@ import {typography} from '@utils/typography';
 import type {UserLastChannelResponse} from '@read_receipts/types';
 
 const messages = defineMessages({
-    lastSeenIn: {
-        id: 'read_receipts.last_seen_in',
-        defaultMessage: 'Last seen in {channel}',
+    lastSeen: {
+        id: 'read_receipts.last_seen',
+        defaultMessage: 'Last Seen',
     },
-    dmWith: {
-        id: 'read_receipts.dm_with',
-        defaultMessage: 'DM with {user}',
+    dmingUser: {
+        id: 'read_receipts.dming_user',
+        defaultMessage: 'DMing',
+    },
+    inGroup: {
+        id: 'read_receipts.in_group',
+        defaultMessage: 'In group:',
+    },
+    reading: {
+        id: 'read_receipts.reading',
+        defaultMessage: 'Reading',
     },
 });
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     container: {
+        marginVertical: 8,
+    },
+    row: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        gap: 12,
     },
-    iconContainer: {
-        width: 24,
-        alignItems: 'center',
+    title: {
+        color: changeOpacity(theme.centerChannelColor, 0.56),
+        marginBottom: 2,
+        ...typography('Body', 50, 'SemiBold'),
     },
     text: {
-        color: changeOpacity(theme.centerChannelColor, 0.72),
+        color: theme.centerChannelColor,
         ...typography('Body', 200),
-        flex: 1,
+    },
+    link: {
+        color: theme.linkColor,
+        ...typography('Body', 200),
     },
 }));
 
@@ -49,50 +62,16 @@ type Props = {
     userId: string;
 };
 
-function formatRelativeTime(intl: ReturnType<typeof useIntl>, timestamp: number): string {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
+function getDisplayName(lastChannel: UserLastChannelResponse): string {
+    const {other_username, other_nickname, other_first_name, other_last_name, display_name} = lastChannel;
 
-    if (days > 0) {
-        return intl.formatMessage(
-            {id: 'read_receipts.days_ago', defaultMessage: '{count, plural, one {# day ago} other {# days ago}}'},
-            {count: days},
-        );
+    if (other_nickname) {
+        return other_nickname;
     }
-    if (hours > 0) {
-        return intl.formatMessage(
-            {id: 'read_receipts.hours_ago', defaultMessage: '{count, plural, one {# hour ago} other {# hours ago}}'},
-            {count: hours},
-        );
+    if (other_first_name || other_last_name) {
+        return `${other_first_name || ''} ${other_last_name || ''}`.trim();
     }
-    if (minutes > 0) {
-        return intl.formatMessage(
-            {id: 'read_receipts.minutes_ago', defaultMessage: '{count, plural, one {# minute ago} other {# minutes ago}}'},
-            {count: minutes},
-        );
-    }
-    return intl.formatMessage({id: 'read_receipts.just_now', defaultMessage: 'Just now'});
-}
-
-function getChannelDisplayName(lastChannel: UserLastChannelResponse): string {
-    const {channel_type, display_name, other_username, other_nickname, other_first_name, other_last_name} = lastChannel;
-
-    // For DMs, show the other user's name
-    if (channel_type === 'D') {
-        if (other_nickname) {
-            return other_nickname;
-        }
-        if (other_first_name || other_last_name) {
-            return `${other_first_name || ''} ${other_last_name || ''}`.trim();
-        }
-        return other_username || display_name;
-    }
-
-    return display_name;
+    return other_username || display_name;
 }
 
 function UserLastSeen({userId}: Props) {
@@ -103,66 +82,70 @@ function UserLastSeen({userId}: Props) {
 
     const permissions = useReadReceiptsPermissions(serverUrl);
     const [lastChannel, setLastChannel] = useState<UserLastChannelResponse | null>(null);
-    const [loading, setLoading] = useState(true);
 
     const shouldShow = permissions.can_view_receipts && permissions.enable_last_seen;
 
+    // Fetch every time the component mounts
     useEffect(() => {
         if (!shouldShow || !userId) {
-            setLoading(false);
             return;
         }
 
         const fetchLastSeen = async () => {
-            setLoading(true);
             const result = await fetchUserLastChannel(serverUrl, userId);
             if (result.lastChannel) {
                 setLastChannel(result.lastChannel);
             }
-            setLoading(false);
         };
 
         fetchLastSeen();
     }, [shouldShow, serverUrl, userId]);
 
-    if (!shouldShow || loading || !lastChannel) {
+    const handleChannelPress = useCallback(() => {
+        if (lastChannel?.channel_id) {
+            switchToChannelById(serverUrl, lastChannel.channel_id);
+        }
+    }, [serverUrl, lastChannel?.channel_id]);
+
+    if (!shouldShow || !lastChannel || !lastChannel.channel_id) {
         return null;
     }
 
-    const channelName = getChannelDisplayName(lastChannel);
     const isDm = lastChannel.channel_type === 'D';
+    const isGroup = lastChannel.channel_type === 'G';
 
-    // Format the channel name based on type
-    let formattedChannel: string;
+    let prefixText: string;
+    let linkText: string;
+
     if (isDm) {
-        formattedChannel = intl.formatMessage(messages.dmWith, {user: channelName});
-    } else if (lastChannel.channel_type === 'G') {
-        // Group message - just show the display name
-        formattedChannel = channelName;
+        prefixText = intl.formatMessage(messages.dmingUser) + ' ';
+        linkText = `@${getDisplayName(lastChannel)}`;
+    } else if (isGroup) {
+        prefixText = intl.formatMessage(messages.inGroup) + ' ';
+        linkText = lastChannel.display_name;
     } else {
-        // Public or private channel
-        formattedChannel = `#${channelName}`;
+        prefixText = intl.formatMessage(messages.reading) + ' ';
+        linkText = `#${lastChannel.display_name}`;
     }
-
-    const relativeTime = formatRelativeTime(intl, lastChannel.last_viewed_at);
 
     return (
         <View style={styles.container}>
-            <View style={styles.iconContainer}>
-                <CompassIcon
-                    color={changeOpacity(theme.centerChannelColor, 0.48)}
-                    name='eye-outline'
-                    size={20}
-                />
+            <FormattedText
+                id={messages.lastSeen.id}
+                defaultMessage={messages.lastSeen.defaultMessage}
+                style={styles.title}
+                testID='user_profile.last_seen.title'
+            />
+            <View style={styles.row}>
+                <Text style={styles.text}>
+                    {prefixText}
+                </Text>
+                <TouchableOpacity onPress={handleChannelPress}>
+                    <Text style={styles.link}>
+                        {linkText}
+                    </Text>
+                </TouchableOpacity>
             </View>
-            <Text
-                style={styles.text}
-                numberOfLines={2}
-                testID='user_profile.last_seen'
-            >
-                {intl.formatMessage(messages.lastSeenIn, {channel: formattedChannel})}
-                {` (${relativeTime})`}
-            </Text>
         </View>
     );
 }

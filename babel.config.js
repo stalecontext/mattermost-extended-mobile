@@ -20,6 +20,7 @@ module.exports = {
                 '@calls': './app/products/calls',
                 '@channel_sync': './app/products/channel_sync',
                 '@discord_replies': './app/products/discord_replies',
+                '@emoji_categorizer': './app/products/emoji_categorizer',
                 '@read_receipts': './app/products/read_receipts',
                 '@client': './app/client',
                 '@components': './app/components',

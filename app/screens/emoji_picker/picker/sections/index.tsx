@@ -1,6 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {fetchEmojiCategories} from '@emoji_categorizer/actions/remote';
+import EmojiCategoriesStore from '@emoji_categorizer/store/emoji_categories_store';
 import {BottomSheetFlashList} from '@gorhom/bottom-sheet';
 import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
 import {chunk} from 'lodash';
@@ -21,6 +23,7 @@ import SectionFooter from './section_footer';
 import SectionHeader, {type EmojiSection} from './section_header';
 
 import type {CustomEmojiModel} from '@database/models/server';
+import type {EmojiCategory} from '@emoji_categorizer/types';
 
 type SectionListItem = EmojiSection | EmojiSectionRow;
 
@@ -66,6 +69,7 @@ export default function EmojiSectionList({customEmojis, customEmojisEnabled, fil
     const [customEmojiPage, setCustomEmojiPage] = useState(() => Math.ceil(customEmojis.length / EMOJIS_PER_PAGE));
     const [fetchingCustomEmojis, setFetchingCustomEmojis] = useState(false);
     const [loadedAllCustomEmojis, setLoadedAllCustomEmojis] = useState(false);
+    const [pluginCategories, setPluginCategories] = useState<EmojiCategory[]>([]);
     const scrollingToIndex = useRef(false);
     const serverUrl = useServerUrl();
     const isTablet = useIsTablet();
@@ -73,8 +77,27 @@ export default function EmojiSectionList({customEmojis, customEmojisEnabled, fil
 
     const list = useRef<FlashList<SectionListItem> | null>(null);
 
+    // Fetch plugin emoji categories on mount
+    useEffect(() => {
+        // eslint-disable-next-line no-console
+        console.log('[EmojiSectionList] Mounting, fetching emoji categories for:', serverUrl);
+        fetchEmojiCategories(serverUrl);
+        const subscription = EmojiCategoriesStore.observeCategories(serverUrl).subscribe(setPluginCategories);
+        return () => subscription.unsubscribe();
+    }, [serverUrl]);
+
+    // Log when pluginCategories changes
+    useEffect(() => {
+        // eslint-disable-next-line no-console
+        console.log('[EmojiSectionList] pluginCategories updated:', pluginCategories.length, pluginCategories.map((c) => c.name).join(', '));
+    }, [pluginCategories]);
+
     const sections: SectionListItem[] = useMemo(() => {
+        // eslint-disable-next-line no-console
+        console.log('[EmojiSectionList] Building sections, pluginCategories count:', pluginCategories.length);
         const emojisPerRow = isTablet ? EMOJIS_PER_ROW_TABLET : EMOJIS_PER_ROW;
+
+        // Build the standard categories array
         const sectionsArray = CategoryNames.map<EmojiSection>((category) => {
             return {
                 type: 'section',
@@ -93,52 +116,86 @@ export default function EmojiSectionList({customEmojis, customEmojisEnabled, fil
             });
         }
 
+        // Insert plugin categories after "recent" (index 0 in CategoryNames, may be 1 if default is added)
+        if (pluginCategories.length > 0) {
+            const recentIndex = sectionsArray.findIndex((s) => s.key === 'recent');
+            const insertIndex = recentIndex >= 0 ? recentIndex + 1 : 0;
+
+            const pluginSections: EmojiSection[] = pluginCategories.map((cat) => ({
+                type: 'section',
+                id: `plugin.emoji_categorizer.${cat.id}`,
+                defaultMessage: cat.name,
+                icon: cat.icon, // Emoji name (e.g., 'star') - will be used as custom emoji icon
+                key: `plugin_${cat.id}`,
+                isPluginCategory: true,
+                pluginCategoryData: cat,
+            }));
+
+            sectionsArray.splice(insertIndex, 0, ...pluginSections);
+        }
+
         return sectionsArray.reduce<SectionListItem[]>((acc, section, sectionIndex) => {
             acc.push(section);
             const emojiIndices = EmojiIndicesByCategory.get('default')?.get(section.key);
             let emojiArray: EmojiAlias[][];
-            switch (section.key) {
-                case 'custom': {
-                    const builtInCustom = emojiIndices.map(fillEmoji.bind(null, 'custom'));
-                    const mapCustom = (ce: CustomEmojiModel) => ({
-                        aliases: [],
-                        name: ce.name,
-                        short_name: '',
-                    });
-                    const custom = customEmojisEnabled ? customEmojis.map(mapCustom) : [];
-                    emojiArray = chunk<EmojiAlias>(builtInCustom.concat(custom), emojisPerRow);
-                    break;
-                }
-                case 'recent': {
-                    const recentMap = (emoji: string) => ({
-                        aliases: [],
-                        name: emoji,
-                        short_name: '',
-                    });
-                    if (recentEmojis.length === 0) {
-                        acc.pop();
-                        return acc;
-                    }
-                    emojiArray = chunk<EmojiAlias>(recentEmojis.map(recentMap), emojisPerRow);
-                    break;
-                }
-                case 'default':
-                    acc.push({
-                        type: 'row',
-                        emojis: [{
-                            aliases: [],
-                            name: imageUrl || file?.name || '',
-                            short_name: imageUrl || file?.name || '',
-                            category: 'image',
-                        }],
-                        sectionIndex,
-                        category: section.key,
-                        index: 0,
-                    });
+
+            // Handle plugin categories
+            if ('isPluginCategory' in section && section.isPluginCategory && 'pluginCategoryData' in section) {
+                const pluginCat = section.pluginCategoryData as EmojiCategory;
+                if (pluginCat.emojiIds.length === 0) {
+                    acc.pop(); // Remove empty category header
                     return acc;
-                default:
-                    emojiArray = chunk(emojiIndices.map(fillEmoji.bind(null, section.key)), emojisPerRow);
-                    break;
+                }
+                const pluginEmojiMap = (emoji: string) => ({
+                    aliases: [],
+                    name: emoji,
+                    short_name: '',
+                });
+                emojiArray = chunk<EmojiAlias>(pluginCat.emojiIds.map(pluginEmojiMap), emojisPerRow);
+            } else {
+                switch (section.key) {
+                    case 'custom': {
+                        const builtInCustom = emojiIndices.map(fillEmoji.bind(null, 'custom'));
+                        const mapCustom = (ce: CustomEmojiModel) => ({
+                            aliases: [],
+                            name: ce.name,
+                            short_name: '',
+                        });
+                        const custom = customEmojisEnabled ? customEmojis.map(mapCustom) : [];
+                        emojiArray = chunk<EmojiAlias>(builtInCustom.concat(custom), emojisPerRow);
+                        break;
+                    }
+                    case 'recent': {
+                        const recentMap = (emoji: string) => ({
+                            aliases: [],
+                            name: emoji,
+                            short_name: '',
+                        });
+                        if (recentEmojis.length === 0) {
+                            acc.pop();
+                            return acc;
+                        }
+                        emojiArray = chunk<EmojiAlias>(recentEmojis.map(recentMap), emojisPerRow);
+                        break;
+                    }
+                    case 'default':
+                        acc.push({
+                            type: 'row',
+                            emojis: [{
+                                aliases: [],
+                                name: imageUrl || file?.name || '',
+                                short_name: imageUrl || file?.name || '',
+                                category: 'image',
+                            }],
+                            sectionIndex,
+                            category: section.key,
+                            index: 0,
+                        });
+                        return acc;
+                    default:
+                        emojiArray = chunk(emojiIndices.map(fillEmoji.bind(null, section.key)), emojisPerRow);
+                        break;
+                }
             }
 
             for (let index = 0; index < emojiArray.length; index++) {
@@ -155,7 +212,7 @@ export default function EmojiSectionList({customEmojis, customEmojisEnabled, fil
 
             return acc;
         }, []);
-    }, [customEmojis, customEmojisEnabled, file, imageUrl, isTablet, recentEmojis]);
+    }, [customEmojis, customEmojisEnabled, file, imageUrl, isTablet, pluginCategories, recentEmojis]);
 
     const stickyHeaderIndices = useMemo(() =>
        sections.

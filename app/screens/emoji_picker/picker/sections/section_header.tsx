@@ -15,6 +15,8 @@ export interface EmojiSection {
     defaultMessage?: string;
     icon: string;
     key: string;
+    isPluginCategory?: boolean;
+    pluginCategoryData?: unknown;
 }
 
 type Props = {

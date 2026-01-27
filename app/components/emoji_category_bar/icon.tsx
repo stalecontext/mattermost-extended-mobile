@@ -5,6 +5,7 @@ import React, {useCallback} from 'react';
 import {TouchableOpacity} from 'react-native';
 
 import CompassIcon from '@components/compass_icon';
+import Emoji from '@components/emoji';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
@@ -36,6 +37,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
+// MDI icons used in the emoji picker all contain hyphens (e.g., "clock-outline")
+// Emoji names from the plugin don't contain hyphens (e.g., "star", "heart")
+const isMdiIcon = (icon: string) => icon.includes('-');
+
 const EmojiCategoryBarIcon = ({currentIndex, icon, index, scrollToIndex, theme}: Props) => {
     const style = getStyleSheet(theme);
     const onPress = usePreventDoubleTap(useCallback(() => scrollToIndex(index), [index, scrollToIndex]));
@@ -45,11 +50,18 @@ const EmojiCategoryBarIcon = ({currentIndex, icon, index, scrollToIndex, theme}:
             onPress={onPress}
             style={[style.container, currentIndex === index ? style.selectedContainer : undefined]}
         >
-            <CompassIcon
-                name={icon}
-                size={20}
-                style={[style.icon, currentIndex === index ? style.selected : undefined]}
-            />
+            {isMdiIcon(icon) ? (
+                <CompassIcon
+                    name={icon}
+                    size={20}
+                    style={[style.icon, currentIndex === index ? style.selected : undefined]}
+                />
+            ) : (
+                <Emoji
+                    emojiName={icon}
+                    size={18}
+                />
+            )}
         </TouchableOpacity>
     );
 };

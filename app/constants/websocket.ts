@@ -112,6 +112,9 @@ const WebsocketEvents = {
     // Channel Sync
     CHANNEL_SYNC_REFRESH: 'custom_com.example.channel-sync_channel_sync_refresh',
 
+    // Emoji Categorizer
+    EMOJI_CATEGORIES_UPDATED: 'custom_com.github.mattermost-emoji-categorizer_categories_updated',
+
     // Burn on Read
     BOR_POST_REVEALED: 'post_revealed',
     BOR_POST_BURNED: 'post_burned',

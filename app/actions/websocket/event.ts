@@ -3,6 +3,7 @@
 
 import {handleAgentPostUpdate} from '@agents/actions/websocket';
 import {handleChannelSyncRefreshEvent} from '@channel_sync/actions/websocket';
+import {handleEmojiCategoriesUpdatedEvent} from '@emoji_categorizer/actions/websocket';
 import {handlePostCreatedForReadReceipts} from '@read_receipts/actions/websocket';
 
 import * as bookmark from '@actions/local/channel_bookmark';
@@ -316,6 +317,11 @@ export async function handleWebSocketEvent(serverUrl: string, msg: WebSocketMess
         // Channel Sync
         case WebsocketEvents.CHANNEL_SYNC_REFRESH:
             handleChannelSyncRefreshEvent(serverUrl, msg);
+            break;
+
+        // Emoji Categorizer
+        case WebsocketEvents.EMOJI_CATEGORIES_UPDATED:
+            handleEmojiCategoriesUpdatedEvent(serverUrl, msg);
             break;
 
         // Burn on Read Events
