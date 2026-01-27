@@ -491,14 +491,17 @@ export async function fetchMyChannelsForTeam(
         const client = NetworkManager.getClient(serverUrl);
         const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
 
-        // Initialize Channel Sync state for this server/team
+        // Check Channel Sync state FIRST to avoid fetching user categories if sync is enabled
         const {syncEnabled} = await initializeChannelSync(serverUrl, teamId);
 
-        const [allChannels, channelMemberships, categoriesWithOrder] = await Promise.all([
+        // Fetch channels and memberships always, but only fetch user categories if sync is disabled
+        const fetchPromises: [Promise<Channel[]>, Promise<ChannelMembership[]>, Promise<CategoriesWithOrder> | null] = [
             client.getMyChannels(teamId, includeDeleted, since, groupLabel),
             client.getMyChannelMembers(teamId, groupLabel),
-            client.getCategories('me', teamId, groupLabel),
-        ]);
+            syncEnabled ? null : client.getCategories('me', teamId, groupLabel),
+        ];
+
+        const [allChannels, channelMemberships, categoriesWithOrder] = await Promise.all(fetchPromises);
 
         let channels = allChannels;
         let memberships = channelMemberships;
@@ -507,7 +510,6 @@ export async function fetchMyChannelsForTeam(
         }
 
         const channelIds = new Set<string>(channels.map((c) => c.id));
-        let {categories} = categoriesWithOrder;
         memberships = memberships.reduce((result: ChannelMembership[], m: ChannelMembership) => {
             if (channelIds.has(m.channel_id)) {
                 result.push(m);
@@ -515,12 +517,13 @@ export async function fetchMyChannelsForTeam(
             return result;
         }, []);
 
-        // If Channel Sync is enabled, fetch categories from the plugin instead
+        // Get categories - either from sync plugin or from user's own categories
+        let categories: CategoryWithChannels[];
         if (syncEnabled) {
             const syncedResult = await fetchSyncedCategories(serverUrl, teamId, true, true);
-            if (syncedResult.categories) {
-                categories = syncedResult.categories;
-            }
+            categories = syncedResult.categories || [];
+        } else {
+            categories = categoriesWithOrder?.categories || [];
         }
 
         if (!fetchOnly) {

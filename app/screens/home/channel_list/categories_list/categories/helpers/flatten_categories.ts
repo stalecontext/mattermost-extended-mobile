@@ -28,9 +28,11 @@ export const keyExtractor = (item: FlattenedItem): string => {
         return `h:${item.categoryId}`;
     }
     if (item.type === 'quick_join') {
-        return `qj:${item.channel.id}`;
+        return `qj:${item.categoryId}:${item.channel.id}`;
     }
-    return `c:${item.channelId}`;
+
+    // Include categoryId to avoid duplicates when same channel appears in unreads AND its category
+    return `c:${item.categoryId}:${item.channelId}`;
 };
 
 export const getItemType = (item: FlattenedItem): 'unreads_header' | 'header' | 'channel' | 'quick_join' => {
