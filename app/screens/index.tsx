@@ -203,6 +203,9 @@ Navigation.setLazyComponentRegistrator((screenName) => {
         case Screens.POST_PRIORITY_PICKER:
             screen = withServerDatabase(require('@screens/post_priority_picker').default);
             break;
+        case Screens.POST_READERS:
+            screen = withServerDatabase(require('@screens/post_readers').default);
+            break;
         case Screens.REACTIONS:
             screen = withServerDatabase(require('@screens/reactions').default);
             break;

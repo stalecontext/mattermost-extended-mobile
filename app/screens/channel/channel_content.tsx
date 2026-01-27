@@ -9,11 +9,13 @@ import {KeyboardAwarePostDraftContainer} from '@components/keyboard_aware_post_d
 import PostDraft from '@components/post_draft';
 import ScheduledPostIndicator from '@components/scheduled_post_indicator';
 import {Screens} from '@constants';
+import ChannelFollowersIndicator from '@read_receipts/components/channel_followers_indicator';
 
 import ChannelPostList from './channel_post_list';
 
 type ChannelContentProps = {
     channelId: string;
+    channelType?: string;
     marginTop: number;
     scheduledPostCount: number;
     containerHeight: number;
@@ -34,6 +36,7 @@ const styles = StyleSheet.create({
 
 const ChannelContent = ({
     channelId,
+    channelType,
     marginTop,
     scheduledPostCount,
     containerHeight,
@@ -59,6 +62,10 @@ const ChannelContent = ({
                 {scheduledPostCount > 0 &&
                 <ScheduledPostIndicator scheduledPostCount={scheduledPostCount}/>
                 }
+                <ChannelFollowersIndicator
+                    channelId={channelId}
+                    channelType={channelType}
+                />
                 <PostDraft
                     channelId={channelId}
                     testID={CHANNEL_POST_DRAFT_TESTID}

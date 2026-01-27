@@ -8,6 +8,8 @@ import {type Edge, SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area
 
 import {storeLastViewedChannelIdAndServer, removeLastViewedChannelIdAndServer} from '@actions/app/global';
 import FloatingCallContainer from '@calls/components/floating_call_container';
+import {reportChannelView} from '@read_receipts/actions/remote';
+import ReadReceiptsStore from '@read_receipts/store/read_receipts_store';
 import FreezeScreen from '@components/freeze_screen';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
 import {useChannelSwitch} from '@hooks/channel_switch';
@@ -16,6 +18,7 @@ import {useDefaultHeaderHeight} from '@hooks/header';
 import {useTeamSwitch} from '@hooks/team_switch';
 import {useIsScreenVisible} from '@hooks/use_screen_visibility';
 import SecurityManager from '@managers/security_manager';
+import {useServerUrl} from '@context/server';
 import {popTopScreen} from '@screens/navigation';
 import EphemeralStore from '@store/ephemeral_store';
 
@@ -69,6 +72,7 @@ const Channel = ({
 }: ChannelProps) => {
     useGMasDMNotice(currentUserId, channelType, dismissedGMasDMNotice, hasGMasDMFeature);
     const isTablet = useIsTablet();
+    const serverUrl = useServerUrl();
     const insets = useSafeAreaInsets();
     const [shouldRenderPosts, setShouldRenderPosts] = useState(false);
     const switchingTeam = useTeamSwitch();
@@ -110,13 +114,19 @@ const Channel = ({
 
         storeLastViewedChannelIdAndServer(channelId);
 
+        // Report channel view for read receipts plugin (silent, non-blocking)
+        const permissions = ReadReceiptsStore.getPermissions(serverUrl);
+        if (permissions.can_view_receipts && permissions.enable_last_seen) {
+            reportChannelView(serverUrl, channelId);
+        }
+
         return () => {
             cancelAnimationFrame(raf);
             clearTimeout(t);
             removeLastViewedChannelIdAndServer();
             EphemeralStore.removeSwitchingToChannel(channelId);
         };
-    }, [channelId]);
+    }, [channelId, serverUrl]);
 
     const onLayout = useCallback((e: LayoutChangeEvent) => {
         setContainerHeight(e.nativeEvent.layout.height);
@@ -148,6 +158,7 @@ const Channel = ({
                         {shouldRender && (
                             <ChannelContent
                                 channelId={channelId}
+                                channelType={channelType}
                                 marginTop={marginTop}
                                 scheduledPostCount={scheduledPostCount}
                                 containerHeight={containerHeight}
@@ -160,6 +171,7 @@ const Channel = ({
                     shouldRender && (
                         <ChannelContent
                             channelId={channelId}
+                            channelType={channelType}
                             marginTop={marginTop}
                             scheduledPostCount={scheduledPostCount}
                             containerHeight={containerHeight}

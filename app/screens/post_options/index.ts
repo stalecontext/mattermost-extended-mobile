@@ -16,6 +16,7 @@ import {observePermissionForChannel, observePermissionForPost} from '@queries/se
 import {observeConfigIntValue, observeConfigValue, observeLicense} from '@queries/servers/system';
 import {observeIsCRTEnabled, observeThreadById} from '@queries/servers/thread';
 import {observeCurrentUser} from '@queries/servers/user';
+import ReadReceiptsStore from '@read_receipts/store/read_receipts_store';
 import {isBoRPost, isUnrevealedBoRPost} from '@utils/bor';
 import {toMilliseconds} from '@utils/datetime';
 import {isMinimumServerVersion} from '@utils/helpers';
@@ -86,6 +87,7 @@ const enhanced = withObservables([], ({combinedPost, post, showAddReaction, sour
     const bindings = AppsManager.observeBindings(serverUrl, AppBindingLocations.POST_MENU_ITEM);
     const borPost = isBoRPost(post);
     const unrevealedBoRPost = isUnrevealedBoRPost(post);
+    const readReceiptsPermissions = ReadReceiptsStore.observePermissions(serverUrl);
 
     const canPostPermission = combineLatest([channel, currentUser]).pipe(switchMap(([c, u]) => observePermissionForChannel(database, c, u, Permissions.CREATE_POST, false)));
     const hasAddReactionPermission = currentUser.pipe(switchMap((u) => observePermissionForPost(database, post, u, Permissions.ADD_REACTION, true)));
@@ -154,12 +156,37 @@ const enhanced = withObservables([], ({combinedPost, post, showAddReaction, sour
         switchMap((enabled) => (enabled ? observeThreadById(database, post.id) : of$(undefined))),
     );
 
+    // Check if user can view read receipts for this post
+    // Must have view permission AND the feature must be enabled (dropdown menu or post action)
+    // Also check DM permissions if this is a DM channel
+    const canViewReaders = combineLatest([channel, readReceiptsPermissions]).pipe(
+        switchMap(([ch, perms]) => {
+            if (!perms.can_view_receipts) {
+                return of$(false);
+            }
+            if (!perms.enable_dropdown_menu && !perms.enable_post_action) {
+                return of$(false);
+            }
+            // Check DM restriction
+            const isDmOrGm = ch?.type === 'D' || ch?.type === 'G';
+            if (isDmOrGm && !perms.enable_in_direct_messages) {
+                return of$(false);
+            }
+            // Don't show for system messages
+            if (isSystemMessage(post)) {
+                return of$(false);
+            }
+            return of$(true);
+        }),
+    );
+
     return {
         canMarkAsUnread,
         canAddReaction,
         canDelete,
         canReply,
         canPin,
+        canViewReaders,
         combinedPost: of$(combinedPost),
         isSaved,
         canEdit,

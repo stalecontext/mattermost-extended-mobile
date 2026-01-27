@@ -6,7 +6,7 @@ import {useManagedConfig} from '@mattermost/react-native-emm';
 import React, {useMemo} from 'react';
 import {ScrollView} from 'react-native';
 
-import {CopyPermalinkOption, CreateThreadOption, FollowThreadOption, ReplyOption, SaveOption} from '@components/common_post_options';
+import {CopyPermalinkOption, CreateThreadOption, FollowThreadOption, ReplyOption, SaveOption, ViewReadersOption} from '@components/common_post_options';
 import CopyTextOption from '@components/copy_text_option';
 import {ITEM_HEIGHT} from '@components/option_item';
 import {Screens} from '@constants';
@@ -39,6 +39,7 @@ type PostOptionsProps = {
     canMarkAsUnread: boolean;
     canPin: boolean;
     canReply: boolean;
+    canViewReaders: boolean;
     combinedPost?: Post | PostModel;
     isSaved: boolean;
     sourceScreen: AvailableScreens;
@@ -52,7 +53,7 @@ type PostOptionsProps = {
 const PostOptions = ({
     canAddReaction, canDelete, canEdit,
     canMarkAsUnread, canPin, canReply,
-    combinedPost, componentId, isSaved,
+    canViewReaders, combinedPost, componentId, isSaved,
     sourceScreen, post, thread, bindings, serverUrl,
     isBoRPost,
 }: PostOptionsProps) => {
@@ -80,6 +81,7 @@ const PostOptions = ({
         const optionsCount = [
             canCopyPermalink, canCopyText, canDelete, canEdit,
             canMarkAsUnread, canPin, canReply, canReply, !isSystemPost, shouldRenderFollow,
+            canViewReaders,
         ].reduce((acc, v) => {
             return v ? acc + 1 : acc;
         }, 0) + (shouldShowBindings ? 0.5 : 0);
@@ -94,7 +96,7 @@ const PostOptions = ({
     }, [
         canAddReaction, canCopyPermalink, canCopyText,
         canDelete, canEdit, shouldRenderFollow, shouldShowBindings,
-        canMarkAsUnread, canPin, canReply, isSystemPost,
+        canMarkAsUnread, canPin, canReply, isSystemPost, canViewReaders,
     ]);
 
     const renderContent = () => {
@@ -148,6 +150,13 @@ const PostOptions = ({
                     bottomSheetId={Screens.POST_OPTIONS}
                     isSaved={isSaved}
                     postId={post.id}
+                />
+                }
+                {canViewReaders &&
+                <ViewReadersOption
+                    bottomSheetId={Screens.POST_OPTIONS}
+                    postId={post.id}
+                    location={sourceScreen}
                 />
                 }
                 {Boolean(canCopyText && post.message) &&

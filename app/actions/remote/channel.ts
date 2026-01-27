@@ -3,6 +3,7 @@
 
 /* eslint-disable max-lines */
 import {initializeChannelSync, fetchSyncedCategories} from '@channel_sync/actions/remote';
+import {fetchReadReceiptsPermissions} from '@read_receipts/actions/remote';
 import {DeviceEventEmitter} from 'react-native';
 
 import {addChannelToDefaultCategory, handleConvertedGMCategories, storeCategories} from '@actions/local/category';
@@ -493,6 +494,9 @@ export async function fetchMyChannelsForTeam(
 
         // Check Channel Sync state FIRST to avoid fetching user categories if sync is enabled
         const {syncEnabled} = await initializeChannelSync(serverUrl, teamId);
+
+        // Fetch read receipts permissions (silently, non-blocking for channel fetch)
+        fetchReadReceiptsPermissions(serverUrl);
 
         // Fetch channels and memberships always, but only fetch user categories if sync is disabled
         const fetchPromises: [Promise<Channel[]>, Promise<ChannelMembership[]>, Promise<CategoriesWithOrder> | null] = [

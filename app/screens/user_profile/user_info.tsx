@@ -5,6 +5,7 @@ import React, {useEffect, useState, useRef} from 'react';
 
 import {fetchCustomProfileAttributes} from '@actions/remote/custom_profile';
 import {useServerUrl} from '@context/server';
+import UserLastSeen from '@read_receipts/components/user_last_seen';
 import {getUserCustomStatus, sortCustomProfileAttributes} from '@utils/user';
 
 import CustomAttributes from './custom_attributes';
@@ -70,6 +71,7 @@ const UserInfo = ({
                 localTime={showLocalTime ? localTime : undefined}
                 customAttributes={customAttributes}
             />
+            <UserLastSeen userId={user.id}/>
         </>
     );
 };

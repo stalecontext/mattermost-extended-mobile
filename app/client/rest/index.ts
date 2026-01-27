@@ -3,6 +3,7 @@
 
 import ClientAgents, {type ClientAgentsMix} from '@agents/client/rest';
 import ClientChannelSync, {type ClientChannelSyncMix} from '@channel_sync/client/rest';
+import ClientReadReceipts, {type ClientReadReceiptsMix} from '@read_receipts/client/rest';
 
 import ClientCalls, {type ClientCallsMix} from '@calls/client/rest';
 import ClientPlugins, {type ClientPluginsMix} from '@client/rest/plugins';
@@ -46,6 +47,7 @@ interface Client extends ClientBase,
     ClientIntegrationsMix,
     ClientPostsMix,
     ClientPreferencesMix,
+    ClientReadReceiptsMix,
     ClientScheduledPostMix,
     ClientTeamsMix,
     ClientThreadsMix,
@@ -75,6 +77,7 @@ class Client extends mix(ClientBase).with(
     ClientIntegrations,
     ClientPosts,
     ClientPreferences,
+    ClientReadReceipts,
     ClientScheduledPost,
     ClientTeams,
     ClientThreads,
