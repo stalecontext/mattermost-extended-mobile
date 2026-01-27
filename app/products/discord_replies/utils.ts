@@ -4,6 +4,65 @@
 import type {DiscordReplyData, PendingDiscordReply} from './types';
 
 /**
+ * Regex to match discord reply blockquote format:
+ * >[@username](https://server/team/pl/postId): text
+ *
+ * Captures:
+ * 1. username
+ * 2. full URL
+ * 3. post ID (from /pl/postId in URL)
+ * 4. text content after the colon
+ */
+const DISCORD_REPLY_REGEX = /^>\s*\[@([^\]]+)\]\(([^)]*\/pl\/([a-z0-9]+)[^)]*)\):\s*(.*)$/i;
+
+/**
+ * Check if a line is a discord-style reply blockquote
+ */
+export function isDiscordReplyLine(line: string): boolean {
+    return DISCORD_REPLY_REGEX.test(line.trim());
+}
+
+/**
+ * Parse discord reply blockquotes from a message.
+ * Returns an array of DiscordReplyData parsed from lines like:
+ * >[@username](https://server/team/pl/postId): text
+ *
+ * Only parses consecutive blockquote lines at the start of the message.
+ */
+export function parseDiscordRepliesFromMessage(message: string): DiscordReplyData[] {
+    const lines = message.split('\n');
+    const replies: DiscordReplyData[] = [];
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+
+        // Stop parsing when we hit a non-quote line (empty lines are ok to skip)
+        if (!trimmed.startsWith('>')) {
+            if (trimmed === '') {
+                continue; // Skip empty lines between quotes
+            }
+            break; // Stop at first non-quote, non-empty line
+        }
+
+        const match = DISCORD_REPLY_REGEX.exec(trimmed);
+        if (match) {
+            const [, username, , postId, text] = match;
+            replies.push({
+                post_id: postId,
+                user_id: '', // We don't have user_id from the blockquote format
+                username,
+                nickname: '', // We don't have nickname from the blockquote format
+                text: text.trim(),
+                has_image: text.includes('🖼️') || text.toLowerCase().includes('[image]'),
+                has_video: text.includes('🎬') || text.toLowerCase().includes('[video]'),
+            });
+        }
+    }
+
+    return replies;
+}
+
+/**
  * Strip quote lines (lines starting with >) from a message.
  * Matches the desktop plugin's stripQuotes behavior:
  * - Filters out ALL lines starting with '>' (not just leading ones)

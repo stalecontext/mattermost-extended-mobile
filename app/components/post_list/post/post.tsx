@@ -3,7 +3,7 @@
 
 import AgentPost from '@agents/components/agent_post';
 import {isAgentPost} from '@agents/utils';
-import {stripQuotes} from '@discord_replies/utils';
+import {parseDiscordRepliesFromMessage, stripQuotes} from '@discord_replies/utils';
 import React, {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {Platform, type StyleProp, View, type ViewStyle, TouchableHighlight} from 'react-native';
@@ -194,6 +194,14 @@ const Post = ({
         }
         return false;
     }, [customEmojiNames, post.message]);
+
+    // Get discord replies - either from props or parsed from message blockquotes
+    const discordReplies = useMemo((): DiscordReplyData[] => {
+        if (Array.isArray(post.props?.discord_replies) && post.props.discord_replies.length > 0) {
+            return post.props.discord_replies as DiscordReplyData[];
+        }
+        return parseDiscordRepliesFromMessage(post.message);
+    }, [post.props?.discord_replies, post.message]);
 
     const handlePostPress = useCallback(async () => {
         if ([Screens.SAVED_MESSAGES, Screens.MENTIONS, Screens.SEARCH, Screens.PINNED_MESSAGES].includes(location)) {
@@ -495,9 +503,9 @@ const Post = ({
                         skipSavedHeader={skipSavedHeader}
                         skipPinnedHeader={skipPinnedHeader}
                     />
-                    {Array.isArray(post.props?.discord_replies) && post.props.discord_replies.length > 0 && (
+                    {discordReplies.length > 0 && (
                         <DiscordReplyPreview
-                            replies={post.props.discord_replies as DiscordReplyData[]}
+                            replies={discordReplies}
                         />
                     )}
                     <View style={[styles.container, consecutiveStyle]}>
