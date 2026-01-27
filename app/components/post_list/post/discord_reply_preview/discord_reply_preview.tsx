@@ -10,8 +10,10 @@ import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {makeStyleSheetFromTheme} from '@utils/theme';
+import {displayUsername} from '@utils/user';
 
 import type {DiscordReplyData} from '@discord_replies/types';
+import type UserModel from '@typings/database/models/servers/user';
 
 const AVATAR_SIZE = 16;
 const MAX_PREVIEW_LENGTH = 100;
@@ -44,9 +46,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
 
 type Props = {
     replies: DiscordReplyData[];
+    teammateNameDisplay: string;
+    users: Record<string, UserModel>;
 };
 
-const DiscordReplyPreview = ({replies}: Props) => {
+const DiscordReplyPreview = ({replies, teammateNameDisplay, users}: Props) => {
     const theme = useTheme();
     const serverUrl = useServerUrl();
     const styles = getStyleSheet(theme);
@@ -62,7 +66,9 @@ const DiscordReplyPreview = ({replies}: Props) => {
     return (
         <View style={styles.container}>
             {replies.map((reply) => {
-                const displayName = reply.nickname || reply.username;
+                // Look up user by ID first, then by username
+                const user = users[reply.user_id] || users[`username:${reply.username}`];
+                const displayName = user ?displayUsername(user, undefined, teammateNameDisplay) :(reply.nickname || reply.username);
                 const truncatedText = reply.text.length > MAX_PREVIEW_LENGTH ?reply.text.substring(0, MAX_PREVIEW_LENGTH) + '...' :reply.text;
 
                 let mediaIndicator = '';
@@ -72,6 +78,9 @@ const DiscordReplyPreview = ({replies}: Props) => {
                     mediaIndicator = ' [video]';
                 }
 
+                // Use user.id if available, otherwise fall back to reply.user_id
+                const authorId = user?.id || reply.user_id;
+
                 return (
                     <TouchableOpacity
                         key={reply.post_id}
@@ -80,11 +89,15 @@ const DiscordReplyPreview = ({replies}: Props) => {
                         activeOpacity={0.7}
                     >
                         <View style={styles.avatar}>
-                            <ProfilePicture
-                                author={{id: reply.user_id} as UserProfile}
-                                size={AVATAR_SIZE}
-                                showStatus={false}
-                            />
+                            {authorId ? (
+                                <ProfilePicture
+                                    author={{id: authorId} as UserProfile}
+                                    size={AVATAR_SIZE}
+                                    showStatus={false}
+                                />
+                            ) : (
+                                <View style={{width: AVATAR_SIZE, height: AVATAR_SIZE}}/>
+                            )}
                         </View>
                         <Text
                             style={styles.username}
