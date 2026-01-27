@@ -6,6 +6,7 @@ import {TouchableOpacity} from 'react-native';
 
 import CompassIcon from '@components/compass_icon';
 import Emoji from '@components/emoji';
+import {EMOJI_CATEGORY_ICONS} from '@constants/emoji';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
@@ -37,9 +38,9 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
-// MDI icons used in the emoji picker all contain hyphens (e.g., "clock-outline")
-// Emoji names from the plugin don't contain hyphens (e.g., "star", "heart")
-const isMdiIcon = (icon: string) => icon.includes('-');
+// Check if the icon is one of the known MDI icons used for standard emoji categories
+const knownMdiIcons = new Set(Object.values(EMOJI_CATEGORY_ICONS));
+const isMdiIcon = (icon: string) => knownMdiIcons.has(icon);
 
 const EmojiCategoryBarIcon = ({currentIndex, icon, index, scrollToIndex, theme}: Props) => {
     const style = getStyleSheet(theme);

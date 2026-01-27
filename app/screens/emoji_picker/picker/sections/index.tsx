@@ -79,22 +79,12 @@ export default function EmojiSectionList({customEmojis, customEmojisEnabled, fil
 
     // Fetch plugin emoji categories on mount
     useEffect(() => {
-        // eslint-disable-next-line no-console
-        console.log('[EmojiSectionList] Mounting, fetching emoji categories for:', serverUrl);
         fetchEmojiCategories(serverUrl);
         const subscription = EmojiCategoriesStore.observeCategories(serverUrl).subscribe(setPluginCategories);
         return () => subscription.unsubscribe();
     }, [serverUrl]);
 
-    // Log when pluginCategories changes
-    useEffect(() => {
-        // eslint-disable-next-line no-console
-        console.log('[EmojiSectionList] pluginCategories updated:', pluginCategories.length, pluginCategories.map((c) => c.name).join(', '));
-    }, [pluginCategories]);
-
     const sections: SectionListItem[] = useMemo(() => {
-        // eslint-disable-next-line no-console
-        console.log('[EmojiSectionList] Building sections, pluginCategories count:', pluginCategories.length);
         const emojisPerRow = isTablet ? EMOJIS_PER_ROW_TABLET : EMOJIS_PER_ROW;
 
         // Build the standard categories array

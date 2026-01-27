@@ -20,14 +20,10 @@ class EmojiCategoriesStoreSingleton {
     }
 
     setCategories(serverUrl: string, categories: EmojiCategory[], version: number): void {
-        // eslint-disable-next-line no-console
-        console.log('[EmojiCategoriesStore.setCategories] Setting categories:', categories.length, 'version:', version);
         const subject = this.getCategoriesSubject(serverUrl);
 
         // Sort by order
         const sorted = [...categories].sort((a, b) => a.order - b.order);
-        // eslint-disable-next-line no-console
-        console.log('[EmojiCategoriesStore.setCategories] Sorted categories:', sorted.map((c) => c.name).join(', '));
         subject.next(sorted);
         this.version.set(serverUrl, version);
     }
