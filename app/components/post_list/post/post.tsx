@@ -374,7 +374,8 @@ const Post = ({
     const showPostPriority = Boolean(isPostPriorityEnabled && post.metadata?.priority?.priority) && (location !== Screens.THREAD || !post.rootId);
 
     const sameSequence = hasReplies ? (hasReplies && post.rootId) : !post.rootId;
-    if (!showPostPriority && hasSameRoot && isConsecutivePost && sameSequence) {
+    const hasDiscordReplies = discordReplies.length > 0;
+    if (!showPostPriority && hasSameRoot && isConsecutivePost && sameSequence && !hasDiscordReplies) {
         consecutiveStyle = styles.consecutive;
         postAvatar = <View style={styles.consecutivePostContainer}/>;
     } else {
