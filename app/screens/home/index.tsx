@@ -14,7 +14,7 @@ import {autoUpdateTimezone} from '@actions/remote/user';
 import ServerVersion from '@components/server_version';
 import {Events, Launch, Screens} from '@constants';
 import {useTheme} from '@context/theme';
-import {useAppState} from '@hooks/device';
+import {useAppState, useIsTablet} from '@hooks/device';
 import SecurityManager from '@managers/security_manager';
 import {getAllServers} from '@queries/app/servers';
 import {findChannels, popToRoot} from '@screens/navigation';
@@ -26,6 +26,7 @@ import {notificationError} from '@utils/notification';
 
 import Account from './account';
 import ChannelList from './channel_list';
+import PhoneChannelView from './channel_list/phone_channel_view';
 import RecentMentions from './recent_mentions';
 import SavedMessages from './saved_messages';
 import Search from './search';
@@ -68,6 +69,7 @@ export function HomeScreen(props: HomeProps) {
     const intl = useIntl();
     const appState = useAppState();
     const keyboardState = useKeyboardState();
+    const isTablet = useIsTablet();
     const [isEmojiSearchFocused, setIsEmojiSearchFocused] = React.useState(false);
 
     useEffect(() => {
@@ -231,6 +233,7 @@ export function HomeScreen(props: HomeProps) {
                 </Tab.Navigator>
             </NavigationContainer>
             <ServerVersion/>
+            {!isTablet && <PhoneChannelView/>}
         </View>
     );
 }

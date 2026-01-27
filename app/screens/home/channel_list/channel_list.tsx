@@ -27,7 +27,6 @@ import {addSentryContext} from '@utils/sentry';
 
 import AdditionalTabletView from './additional_tablet_view';
 import CategoriesList from './categories_list';
-import PhoneChannelView from './phone_channel_view';
 import Servers from './servers';
 
 import type {LaunchType} from '@typings/launch';
@@ -218,7 +217,6 @@ const ChannelListScreen = (props: ChannelProps) => {
                         }
                     </Animated.View>
                 </View>
-                {!isTablet && <PhoneChannelView/>}
             </SafeAreaView>
         </>
     );
