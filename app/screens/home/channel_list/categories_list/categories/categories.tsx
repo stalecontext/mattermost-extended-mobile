@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import QuickJoinChannelItem from '@channel_sync/components/quick_join_channel_item';
 import {FlashList, type ListRenderItem, type ViewToken} from '@shopify/flash-list';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {DeviceEventEmitter, View, type LayoutChangeEvent} from 'react-native';
@@ -34,6 +35,7 @@ type Props = {
     unreadChannelIds: Set<string>;
     onlyUnreads: boolean;
     isTablet: boolean;
+    currentTeamId: string;
 };
 
 const HEADER_HEIGHT = 44;
@@ -62,7 +64,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
-const Categories = ({flattenedItems, unreadChannelIds, onlyUnreads, isTablet}: Props) => {
+const Categories = ({flattenedItems, unreadChannelIds, onlyUnreads, isTablet, currentTeamId}: Props) => {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
     const listRef = useRef<FlashList<FlattenedItem>>(null);
@@ -118,6 +120,16 @@ const Categories = ({flattenedItems, unreadChannelIds, onlyUnreads, isTablet}: P
             return <CategoryHeader category={item.category}/>;
         }
 
+        if (item.type === 'quick_join') {
+            return (
+                <QuickJoinChannelItem
+                    channel={item.channel}
+                    teamId={currentTeamId}
+                    testID={`channel_list.category.${item.categoryId}.quick_join.${item.channel.id}`}
+                />
+            );
+        }
+
         // item.type === 'channel'
         const testIdSuffix = item.categoryType;
         return (
@@ -130,7 +142,7 @@ const Categories = ({flattenedItems, unreadChannelIds, onlyUnreads, isTablet}: P
                 isOnHome={true}
             />
         );
-    }, [styles, onChannelSwitch, isChannelScreenActive]);
+    }, [styles, onChannelSwitch, isChannelScreenActive, currentTeamId]);
 
     const overrideItemLayout = useCallback((
         layout: {span?: number; size?: number},
@@ -139,6 +151,7 @@ const Categories = ({flattenedItems, unreadChannelIds, onlyUnreads, isTablet}: P
         if (item.type === 'unreads_header' || item.type === 'header') {
             layout.size = HEADER_HEIGHT;
         } else {
+            // Both 'channel' and 'quick_join' items have the same height
             layout.size = CHANNEL_ROW_HEIGHT;
         }
         layout.span = 1;

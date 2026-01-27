@@ -10,6 +10,7 @@ export const SNACK_BAR_TYPE = keyMirror({
     AGENT_STOP_ERROR: null,
     AGENT_REGENERATE_ERROR: null,
     AGENT_TOOL_APPROVAL_ERROR: null,
+    CHANNEL_SYNC_BLOCKED: null,
     CODE_COPIED: null,
     DISCORD_REPLY_ADDED: null,
     DISCORD_REPLY_MAX_REACHED: null,
@@ -63,6 +64,10 @@ const messages = defineMessages({
     AGENT_TOOL_APPROVAL_ERROR: {
         id: 'snack.bar.agent.tool.approval.error',
         defaultMessage: 'Failed to submit tool approval',
+    },
+    CHANNEL_SYNC_BLOCKED: {
+        id: 'snack.bar.channel_sync.blocked',
+        defaultMessage: 'Channel organization is managed by your admin',
     },
     CODE_COPIED: {
         id: 'snack.bar.code.copied',
@@ -157,6 +162,12 @@ export const SNACK_BAR_CONFIG: Record<string, SnackBarConfig> = {
         iconName: 'alert-outline',
         canUndo: false,
         type: MESSAGE_TYPE.ERROR,
+    },
+    CHANNEL_SYNC_BLOCKED: {
+        message: messages.CHANNEL_SYNC_BLOCKED,
+        iconName: 'information-outline',
+        canUndo: false,
+        type: MESSAGE_TYPE.DEFAULT,
     },
     CODE_COPIED: {
         message: messages.CODE_COPIED,

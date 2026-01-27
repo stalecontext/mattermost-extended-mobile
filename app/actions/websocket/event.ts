@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {handleAgentPostUpdate} from '@agents/actions/websocket';
+import {handleChannelSyncRefreshEvent} from '@channel_sync/actions/websocket';
 
 import * as bookmark from '@actions/local/channel_bookmark';
 import {handleBoRPostBurnedEvent, handleBoRPostRevealedEvent} from '@actions/websocket/burn_on_read';
@@ -308,6 +309,11 @@ export async function handleWebSocketEvent(serverUrl: string, msg: WebSocketMess
         // Agents
         case WebsocketEvents.AGENTS_POST_UPDATE:
             handleAgentPostUpdate(msg);
+            break;
+
+        // Channel Sync
+        case WebsocketEvents.CHANNEL_SYNC_REFRESH:
+            handleChannelSyncRefreshEvent(serverUrl, msg);
             break;
 
         // Burn on Read Events

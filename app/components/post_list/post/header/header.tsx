@@ -4,9 +4,8 @@
 import React, {useCallback, useMemo} from 'react';
 import {Text, TouchableOpacity, View} from 'react-native';
 
-import {showPermalink} from '@actions/remote/permalink';
-
 import {removePost} from '@actions/local/post';
+import {showPermalink} from '@actions/remote/permalink';
 import CompassIcon from '@components/compass_icon';
 import FormattedText from '@components/formatted_text';
 import FormattedTime from '@components/formatted_time';

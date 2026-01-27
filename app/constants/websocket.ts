@@ -109,6 +109,9 @@ const WebsocketEvents = {
     // Agents
     AGENTS_POST_UPDATE: 'custom_mattermost-ai_postupdate',
 
+    // Channel Sync
+    CHANNEL_SYNC_REFRESH: 'custom_com.example.channel-sync_channel_sync_refresh',
+
     // Burn on Read
     BOR_POST_REVEALED: 'post_revealed',
     BOR_POST_BURNED: 'post_burned',

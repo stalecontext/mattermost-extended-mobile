@@ -4,6 +4,7 @@
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import {switchMap, combineLatestWith, map} from 'rxjs/operators';
 
+import {withServerUrl} from '@context/server';
 import {DEFAULT_LOCALE} from '@i18n';
 import {observeCurrentTeamId, observeOnlyUnreads} from '@queries/servers/system';
 import {observeCurrentUser} from '@queries/servers/user';
@@ -15,9 +16,10 @@ import type {WithDatabaseArgs} from '@typings/database/database';
 
 type Props = WithDatabaseArgs & {
     isTablet: boolean;
+    serverUrl?: string;
 };
 
-const enhanced = withObservables(['isTablet'], ({database, isTablet}: Props) => {
+const enhanced = withObservables(['isTablet'], ({database, isTablet, serverUrl}: Props) => {
     const currentTeamId = observeCurrentTeamId(database);
     const currentUser = observeCurrentUser(database);
     const onlyUnreads = observeOnlyUnreads(database);
@@ -32,6 +34,7 @@ const enhanced = withObservables(['isTablet'], ({database, isTablet}: Props) => 
                 isTablet,
                 isOnlyUnreads,
                 teamId,
+                serverUrl || '',
             );
         }),
     );
@@ -47,4 +50,4 @@ const enhanced = withObservables(['isTablet'], ({database, isTablet}: Props) => 
     };
 });
 
-export default withDatabase(enhanced(Categories));
+export default withDatabase(withServerUrl(enhanced(Categories)));

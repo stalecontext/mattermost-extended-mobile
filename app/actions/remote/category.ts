@@ -1,6 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {fetchSyncedCategories} from '@channel_sync/actions/remote';
+import ChannelSyncStore from '@channel_sync/store/channel_sync_store';
+
 import {storeCategories} from '@actions/local/category';
 import {General} from '@constants';
 import {CHANNELS_CATEGORY, DMS_CATEGORY, FAVORITES_CATEGORY} from '@constants/categories';
@@ -11,7 +14,7 @@ import {getChannelById} from '@queries/servers/channel';
 import {getCurrentTeamId} from '@queries/servers/system';
 import {getFullErrorMessage} from '@utils/errors';
 import {logDebug} from '@utils/log';
-import {showFavoriteChannelSnackbar} from '@utils/snack_bar';
+import {showChannelSyncBlockedSnackbar, showFavoriteChannelSnackbar} from '@utils/snack_bar';
 
 import {forceLogoutIfNecessary} from './session';
 
@@ -22,6 +25,15 @@ export type CategoriesRequest = {
 
 export const fetchCategories = async (serverUrl: string, teamId: string, prune = false, fetchOnly = false): Promise<CategoriesRequest> => {
     try {
+        // Check if Channel Sync is enabled for this server/team
+        const syncEnabled = ChannelSyncStore.isSyncEnabled(serverUrl, teamId);
+
+        if (syncEnabled) {
+            // Use plugin's synced categories
+            return fetchSyncedCategories(serverUrl, teamId, prune, fetchOnly);
+        }
+
+        // Normal flow - fetch from server
         const client = NetworkManager.getClient(serverUrl);
         const {categories} = await client.getCategories('me', teamId);
 
@@ -49,6 +61,14 @@ export const toggleFavoriteChannel = async (serverUrl: string, channelId: string
 
         const currentTeamId = await getCurrentTeamId(database);
         const teamId = channel?.teamId || currentTeamId;
+
+        // Check if Channel Sync is enabled - block favoriting if so
+        const syncEnabled = ChannelSyncStore.isSyncEnabled(serverUrl, teamId);
+        if (syncEnabled) {
+            showChannelSyncBlockedSnackbar();
+            return {error: 'sync_enabled'};
+        }
+
         const currentCategory = await getChannelCategory(database, teamId, channelId);
 
         if (!currentCategory) {

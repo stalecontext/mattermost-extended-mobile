@@ -77,3 +77,9 @@ export const showBoRPostErrorSnackbar = (message?: string) => {
         customMessage: message,
     });
 };
+
+export const showChannelSyncBlockedSnackbar = () => {
+    return showSnackBar({
+        barType: SNACK_BAR_TYPE.CHANNEL_SYNC_BLOCKED,
+    });
+};

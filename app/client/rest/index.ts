@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import ClientAgents, {type ClientAgentsMix} from '@agents/client/rest';
+import ClientChannelSync, {type ClientChannelSyncMix} from '@channel_sync/client/rest';
 
 import ClientCalls, {type ClientCallsMix} from '@calls/client/rest';
 import ClientPlugins, {type ClientPluginsMix} from '@client/rest/plugins';
@@ -37,6 +38,7 @@ interface Client extends ClientBase,
     ClientCategoriesMix,
     ClientChannelsMix,
     ClientChannelBookmarksMix,
+    ClientChannelSyncMix,
     ClientEmojisMix,
     ClientFilesMix,
     ClientGeneralMix,
@@ -65,6 +67,7 @@ class Client extends mix(ClientBase).with(
     ClientCategories,
     ClientChannels,
     ClientChannelBookmarks,
+    ClientChannelSync,
     ClientEmojis,
     ClientFiles,
     ClientGeneral,

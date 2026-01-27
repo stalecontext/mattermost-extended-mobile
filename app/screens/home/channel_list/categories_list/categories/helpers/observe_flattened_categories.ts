@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import ChannelSyncStore from '@channel_sync/store/channel_sync_store';
 import {of as of$, combineLatest, type Observable} from 'rxjs';
 import {switchMap, map, distinctUntilChanged} from 'rxjs/operators';
 
@@ -202,6 +203,8 @@ const observeFlattenedCategoriesNormal = (
     currentUserId: string,
     locale: string,
     isTablet: boolean,
+    serverUrl: string,
+    teamId: string,
 ): Observable<FlattenedCategoriesData> => {
     if (categories.length === 0) {
         return of$({items: [], unreadChannelIds: new Set<string>()});
@@ -217,8 +220,12 @@ const observeFlattenedCategoriesNormal = (
         observeCategoryData(category, database, currentUserId, locale, isTablet),
     );
 
-    return combineLatest([combineLatest(categoryDataObservables), unreadsOnTop]).pipe(
-        map(([categoriesData, unreadsOnTopValue]) => {
+    // Observe Quick Join channels from the ChannelSyncStore
+    const quickJoinChannels = ChannelSyncStore.observeQuickJoinChannels(serverUrl, teamId);
+    const quickJoinCategoryMap = ChannelSyncStore.observeQuickJoinCategoryMap(serverUrl, teamId);
+
+    return combineLatest([combineLatest(categoryDataObservables), unreadsOnTop, quickJoinChannels, quickJoinCategoryMap]).pipe(
+        map(([categoriesData, unreadsOnTopValue, qjChannels, qjCategoryMap]) => {
             // Collect all unread channel IDs and process categories in one pass
             const unreadChannelIds = new Set<string>();
             const processedCategoriesData: CategoryData[] = categoriesData.map((catData) => {
@@ -236,7 +243,7 @@ const observeFlattenedCategoriesNormal = (
                 return catData;
             });
 
-            const items = flattenCategories(processedCategoriesData, unreadsOnTopValue);
+            const items = flattenCategories(processedCategoriesData, unreadsOnTopValue, qjChannels, qjCategoryMap);
             return {items, unreadChannelIds};
         }),
         distinctUntilChanged((prev, curr) => {
@@ -262,6 +269,10 @@ const observeFlattenedCategoriesNormal = (
                     }
                 } else if (prevItem.type === 'channel' && currItem.type === 'channel') {
                     if (prevItem.channelId !== currItem.channelId) {
+                        return false;
+                    }
+                } else if (prevItem.type === 'quick_join' && currItem.type === 'quick_join') {
+                    if (prevItem.channel.id !== currItem.channel.id) {
                         return false;
                     }
                 }
@@ -295,6 +306,7 @@ export const observeFlattenedCategories = (
     isTablet: boolean,
     onlyUnreads: boolean,
     currentTeamId: string,
+    serverUrl: string,
 ): Observable<FlattenedCategoriesData> => {
     if (onlyUnreads) {
         return observeFlattenedUnreads(database, currentTeamId, isTablet);
@@ -304,6 +316,6 @@ export const observeFlattenedCategories = (
     const categories = queryCategoriesByTeamIds(database, [currentTeamId]).observeWithColumns(['sort_order', 'collapsed']);
 
     return categories.pipe(
-        switchMap((cats) => observeFlattenedCategoriesNormal(sortCategories(cats), database, currentUserId, locale, isTablet)),
+        switchMap((cats) => observeFlattenedCategoriesNormal(sortCategories(cats), database, currentUserId, locale, isTablet, serverUrl, currentTeamId)),
     );
 };
