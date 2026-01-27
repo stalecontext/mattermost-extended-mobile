@@ -114,7 +114,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
         profilePictureContainer: {
             marginBottom: 5,
             marginRight: 10,
-            marginTop: 10,
+            marginTop: 13,
         },
         rightColumn: {
             flex: 1,
