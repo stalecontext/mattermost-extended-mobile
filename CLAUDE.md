@@ -13,6 +13,7 @@ This is a customized fork of mattermost-mobile with additional features.
 ### Documentation
 - **[docs/fork/README.md](docs/fork/README.md)** - Fork overview and architecture patterns
 - **[docs/fork/discord-replies.md](docs/fork/discord-replies.md)** - Discord-style multi-quote replies implementation
+- **[docs/fork/channel-sync.md](docs/fork/channel-sync.md)** - Channel sync plugin support
 
 ### Custom Features
 
@@ -27,6 +28,19 @@ Allows users to quote-reply to multiple posts (up to 10) in a single message.
 - `app/components/post_draft/discord_replies_bar/` - Pending replies UI
 
 **Path alias:** `@discord_replies/*` → `app/products/discord_replies/*`
+
+#### Channel Sync Plugin Support
+Mobile support for the `com.example.channel-sync` server plugin that syncs sidebar categories from a Site Admin to all users.
+
+**New files:**
+- `app/products/channel_sync/` - Types, constants, client, store, actions, components
+- `app/products/channel_sync/client/rest.ts` - ClientMix for plugin API
+- `app/products/channel_sync/store/channel_sync_store.ts` - Ephemeral state
+- `app/products/channel_sync/actions/remote.ts` - API actions
+- `app/products/channel_sync/actions/websocket.ts` - WebSocket handler
+- `app/products/channel_sync/components/quick_join_channel_item/` - Quick Join UI
+
+**Path alias:** `@channel_sync/*` → `app/products/channel_sync/*`
 
 ---
 

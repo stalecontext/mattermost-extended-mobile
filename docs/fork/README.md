@@ -11,6 +11,13 @@ Allows users to select multiple posts (up to 10) to quote-reply to in a single m
 
 **Status:** Implemented
 
+### Channel Sync Plugin Support
+Mobile support for the `com.example.channel-sync` server plugin that syncs sidebar categories from a Site Admin to all users, with Quick Join channels shown inline.
+
+**Documentation:** [channel-sync.md](./channel-sync.md)
+
+**Status:** Implemented
+
 ---
 
 ## Architecture Patterns Used
