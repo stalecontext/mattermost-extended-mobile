@@ -91,6 +91,9 @@ Navigation.setLazyComponentRegistrator((screenName) => {
         case Screens.CHANNEL_INFO:
             screen = withServerDatabase(require('@screens/channel_info').default);
             break;
+        case Screens.CHANNEL_READERS:
+            screen = withServerDatabase(require('@screens/channel_readers').default);
+            break;
         case Screens.CODE:
             screen = withServerDatabase(require('@screens/code').default);
             break;

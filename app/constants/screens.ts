@@ -19,6 +19,7 @@ export const CHANNEL_BOOKMARK = 'ChannelBookmarkAddOrEdit';
 export const CHANNEL_FILES = 'ChannelFiles';
 export const CHANNEL_INFO = 'ChannelInfo';
 export const CHANNEL_NOTIFICATION_PREFERENCES = 'ChannelNotificationPreferences';
+export const CHANNEL_READERS = 'ChannelReaders';
 export const CODE = 'Code';
 export const CONVERT_GM_TO_CHANNEL = 'ConvertGMToChannel';
 export const CREATE_DIRECT_MESSAGE = 'CreateDirectMessage';
@@ -110,6 +111,7 @@ export default {
     CHANNEL_FILES,
     CHANNEL_INFO,
     CHANNEL_NOTIFICATION_PREFERENCES,
+    CHANNEL_READERS,
     CODE,
     CONVERT_GM_TO_CHANNEL,
     COMPONENT_LIBRARY,
@@ -214,6 +216,7 @@ export const SCREENS_WITH_TRANSPARENT_BACKGROUND = new Set<string>([
 export const SCREENS_AS_BOTTOM_SHEET = new Set<string>([
     ATTACHMENT_OPTIONS,
     BOTTOM_SHEET,
+    CHANNEL_READERS,
     DRAFT_SCHEDULED_POST_OPTIONS,
     EMOJI_PICKER,
     POST_OPTIONS,
