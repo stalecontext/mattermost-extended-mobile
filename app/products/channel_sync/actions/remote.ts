@@ -49,7 +49,7 @@ export async function fetchSyncedCategories(
         // The API returns {categories: [...], order: [...], quick_join_enabled: bool}
         const syncedCategories = response.categories || [];
 
-        const categories: CategoryWithChannels[] = syncedCategories.map((sc: SyncedCategory) => {
+        const categories: CategoryWithChannels[] = syncedCategories.map((sc: SyncedCategory, index: number) => {
             // Collect Quick Join channels from this category
             if (sc.quick_join && sc.quick_join.length > 0) {
                 for (const qj of sc.quick_join) {
@@ -59,8 +59,13 @@ export async function fetchSyncedCategories(
             }
 
             // Return the category without the quick_join field for storage
+            // Use the array index as sort_order to ensure categories are in the admin's order
+            // (the plugin returns categories in admin's order, but DM category keeps user's sort_order)
             const {quick_join: _, ...category} = sc;
-            return category;
+            return {
+                ...category,
+                sort_order: index,
+            };
         });
 
         // Store Quick Join channels in ephemeral store (only if quick join is enabled)
