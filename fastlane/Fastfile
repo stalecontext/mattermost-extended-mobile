@@ -757,7 +757,7 @@ platform :android do
     link_sentry({:os_type => "android"})
     build_android
     move_android_to_root
-    upload_file_to_s3({:os_type => "android"})
+    # upload_file_to_s3({:os_type => "android"})
   end
 
   desc 'Build an unsigned apk'
@@ -784,7 +784,7 @@ platform :android do
   lane :update_identifiers do
     # Set the name for the app
     app_name =  ENV['APP_NAME'] || 'Mattermost Beta'
-    sh "echo '#{app_name}' > ../fastlane/metadata/android/en-US/title.txt"
+    File.write("../fastlane/metadata/android/en-US/title.txt", "#{app_name}\n")
     android_change_string_app_name(
         newName: app_name,
         stringsFile: './android/app/src/main/res/values/strings.xml'
@@ -819,7 +819,7 @@ platform :android do
         FileUtils.mkdir_p ".#{release_dir}"
       end
 
-      sh "mv .#{beta_dir}* .#{release_dir}"
+      FileUtils.mv(Dir.glob(".#{beta_dir}*"), ".#{release_dir}")
 
       Dir.glob(".#{release_dir}*.java") do |item|
         find_replace_string(
@@ -863,17 +863,16 @@ platform :android do
     end
   end
 
-  lane :replace_assets do
-    if ENV['REPLACE_ASSETS'] == 'true'
-      sh 'cp -R ../dist/assets/release/icons/android/* ../android/app/src/main/res/'
-      sh 'cp -R ../dist/assets/release/splash_screen/android/* ../android/app/src/main/res/'
-    end
-    sh 'mkdir -p ../android/app/src/main/res/raw/'
-    sh 'cp -R ../assets/sounds/* ../android/app/src/main/res/raw/'
-  end
+      lane :replace_assets do
+        if ENV['REPLACE_ASSETS'] == 'true'
+          FileUtils.cp_r(Dir.glob("../dist/assets/release/icons/android/*"), "../android/app/src/main/res/")
+          FileUtils.cp_r(Dir.glob("../dist/assets/release/splash_screen/android/*"), "../android/app/src/main/res/")
+        end
+      end
 
   lane :pinned_certificates do
-    sh 'cp -R ../assets/certs/ ../android/app/src/main/assets/certs'
+    FileUtils.mkdir_p("../android/app/src/main/assets/certs")
+    FileUtils.cp_r(Dir.glob("../assets/certs/*"), "../android/app/src/main/assets/certs")
   end
 
   lane :deploy do |options|
@@ -959,7 +958,7 @@ platform :android do
           end
           new_apk_path = "#{Pathname.new(File.expand_path(File.dirname(__FILE__))).parent.to_s}/#{name}.apk"
           paths.push(new_apk_path)
-          sh "mv #{apk} #{new_apk_path}"
+          FileUtils.mv(apk, new_apk_path)
           UI.message("APK PATH \"#{new_apk_path}\", #{filterName}")
         end
       end
@@ -970,7 +969,7 @@ platform :android do
     if build_task.include?("bundle")
       aab = lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
       new_aab_path = "#{Pathname.new(File.expand_path(File.dirname(__FILE__))).parent.to_s}/#{app_name_sub}.aab"
-      sh "mv #{aab} #{new_aab_path}"
+      FileUtils.mv(aab, new_aab_path)
       UI.message("AAB PATH \"#{new_aab_path}\"")
     end
   end

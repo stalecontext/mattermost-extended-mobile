@@ -8,6 +8,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     CFPropertyList (3.0.8)
+    abbrev (0.1.2)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     artifactory (3.0.17)
@@ -39,6 +40,7 @@ GEM
     colored2 (3.1.2)
     commander (4.6.0)
       highline (~> 2.0.0)
+    csv (3.3.5)
     declarative (0.0.20)
     digest-crc (0.7.0)
       rake (>= 12.0.0, < 14.0.0)
@@ -177,7 +179,10 @@ GEM
     mutex_m (0.3.0)
     nanaimo (0.4.0)
     naturally (2.3.0)
+    nkf (0.2.0)
     nokogiri (1.18.10-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.18.10-x64-mingw-ucrt)
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-darwin)
       racc (~> 1.4)
@@ -235,18 +240,23 @@ PLATFORMS
   arm64-darwin-22
   arm64-darwin-23
   arm64-darwin-24
+  x64-mingw-ucrt
   x86_64-darwin-19
   x86_64-darwin-20
   x86_64-darwin-23
   x86_64-linux
 
 DEPENDENCIES
+  abbrev
+  csv
   dotenv
   fastlane
   fastlane-plugin-android_change_package_identifier
   fastlane-plugin-android_change_string_app_name
   fastlane-plugin-find_replace_string!
   fastlane-plugin-versioning_android
+  mutex_m
+  nkf
   nokogiri (~> 1.18.9)
 
 BUNDLED WITH

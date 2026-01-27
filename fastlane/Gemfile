@@ -3,6 +3,10 @@ source "https://rubygems.org"
 gem "fastlane"
 gem "nokogiri", '~> 1.18.9'
 gem "dotenv"
+gem "abbrev"   # You already added this
+gem "nkf"      # kconv is part of nkf
+gem "csv"      # Prevent the next crash
+gem "mutex_m"  # Prevent the crash after that
 
 plugins_path = File.join(File.dirname(__FILE__), '.', 'Pluginfile')
 eval(File.read(plugins_path), binding) if File.exist?(plugins_path)
