@@ -17,6 +17,7 @@ This is a customized fork of mattermost-mobile with additional features.
 - **[docs/fork/read-receipts.md](docs/fork/read-receipts.md)** - Read receipts plugin support
 - **[docs/fork/emoji-categorizer.md](docs/fork/emoji-categorizer.md)** - Emoji categorizer plugin support
 - **[docs/fork/emoji-usage.md](docs/fork/emoji-usage.md)** - Emoji usage tracker plugin support
+- **[docs/fork/swipe-navigation.md](docs/fork/swipe-navigation.md)** - Discord-style swipe navigation
 
 ### Custom Features
 
@@ -75,6 +76,22 @@ Mobile support for the `com.github.mattermost-emoji-usage` server plugin that tr
 - `app/screens/emoji_picker/picker/header/header.tsx` - Added sync button
 
 **Path alias:** `@emoji_usage/*` → `app/products/emoji_usage/*`
+
+#### Discord-Style Swipe Navigation
+Replaces the default iOS edge-swipe navigation with Discord-style swipe gestures on phones. Swipe right to slide the channel away and reveal the channel list underneath. Swipe left to open a member panel showing online/offline channel members.
+
+**New files:**
+- `app/products/swipe_navigation/` - Constants, types, components
+- `app/products/swipe_navigation/components/swipe_container/use_swipe_gesture.ts` - Pan gesture hook with reduced motion support
+- `app/products/swipe_navigation/components/member_panel/` - Right-side member list panel
+- `app/screens/home/channel_list/phone_channel_view/` - Main phone channel overlay component
+
+**Modified files:**
+- `app/screens/home/index.tsx` - Renders PhoneChannelView for phones
+- `app/screens/channel/channel.tsx` - Added `onSwipeBack` prop for custom back handling
+- `app/actions/local/channel.ts` - Simplified navigation (no longer pushes separate screen for phones)
+
+**Path alias:** `@swipe_navigation/*` → `app/products/swipe_navigation/*`
 
 ---
 

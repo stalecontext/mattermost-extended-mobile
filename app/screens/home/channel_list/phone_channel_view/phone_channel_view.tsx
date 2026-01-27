@@ -3,14 +3,13 @@
 
 import MemberPanel from '@swipe_navigation/components/member_panel';
 import useSwipeGesture from '@swipe_navigation/components/swipe_container/use_swipe_gesture';
-import {MEMBER_PANEL_WIDTH} from '@swipe_navigation/constants';
+import {CHANNEL_ANIMATION_DURATION, MEMBER_PANEL_WIDTH} from '@swipe_navigation/constants';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {DeviceEventEmitter, Dimensions, StyleSheet} from 'react-native';
+import {DeviceEventEmitter, Dimensions, StyleSheet, View} from 'react-native';
 import {GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
     runOnJS,
     useAnimatedStyle,
-    useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
 
@@ -22,7 +21,6 @@ import {setCurrentChannelId} from '@queries/servers/system';
 import Channel from '@screens/channel';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const ANIMATION_DURATION = 300;
 
 const styles = StyleSheet.create({
     container: {
@@ -55,64 +53,66 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
     const serverUrl = useServerUrl();
     const [displayedChannelId, setDisplayedChannelId] = useState<string | null>(null);
     const [isVisible, setIsVisible] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
     const isSwipingBack = useRef(false);
 
-    const handleSwipeBack = useCallback(async () => {
+    const handleSwipeBack = useCallback(() => {
         isSwipingBack.current = true;
+        setIsClosing(true); // Immediately allow touches to pass through
 
-        // Clear current channel to trigger close
-        try {
-            const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
-            await setCurrentChannelId(operator, '');
-        } catch {
-            // Silently handle errors
-        }
+        // Immediately hide the view - don't wait for database
+        setDisplayedChannelId(null);
+        setIsVisible(false);
+
+        // Clear current channel in background
+        setTimeout(async () => {
+            try {
+                const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                await setCurrentChannelId(operator, '');
+            } catch {
+                // Silently handle errors
+            }
+        }, 0);
     }, [serverUrl]);
 
     const {
         translateX,
         panGesture,
-        closePanel,
     } = useSwipeGesture({
         onSwipeBack: handleSwipeBack,
-        enabled: isVisible,
+        enabled: isVisible && !isClosing,
     });
 
     // Handle channel changes
     useEffect(() => {
+        // Ignore if we're in the middle of a swipe-back (already handled)
+        if (isSwipingBack.current) {
+            isSwipingBack.current = false;
+            return;
+        }
+
         if (currentChannelId && !displayedChannelId) {
             // Channel selected - slide in from right
             setDisplayedChannelId(currentChannelId);
+            setIsClosing(false);
             translateX.value = SCREEN_WIDTH;
             setIsVisible(true);
-            translateX.value = withTiming(0, {duration: ANIMATION_DURATION});
+            translateX.value = withTiming(0, {duration: CHANNEL_ANIMATION_DURATION});
         } else if (currentChannelId && displayedChannelId && currentChannelId !== displayedChannelId) {
             // Different channel selected - instant switch (already visible)
             setDisplayedChannelId(currentChannelId);
+            setIsClosing(false);
         } else if (!currentChannelId && displayedChannelId) {
-            // Channel cleared
-            if (isSwipingBack.current) {
-                // Swipe already handled the animation, just clean up after animation completes
-                isSwipingBack.current = false;
-
-                // Wait for swipe animation to complete
-                const timeout = setTimeout(() => {
-                    setDisplayedChannelId(null);
-                    setIsVisible(false);
-                    translateX.value = SCREEN_WIDTH;
-                }, ANIMATION_DURATION);
-                return () => clearTimeout(timeout);
-            }
-
             // Programmatic close (navigation event) - animate out
-            translateX.value = withTiming(SCREEN_WIDTH, {duration: ANIMATION_DURATION}, (finished) => {
+            setIsClosing(true);
+            translateX.value = withTiming(SCREEN_WIDTH, {duration: CHANNEL_ANIMATION_DURATION}, (finished) => {
                 if (finished) {
                     runOnJS(setDisplayedChannelId)(null);
                     runOnJS(setIsVisible)(false);
+                    runOnJS(setIsClosing)(false);
                 }
             });
         }
-        return undefined;
     }, [currentChannelId, displayedChannelId, translateX]);
 
     // Listen for navigation events to close channel view
@@ -130,10 +130,6 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
         return () => listener.remove();
     }, [displayedChannelId, handleSwipeBack]);
 
-    const handleMemberPress = useCallback(() => {
-        closePanel();
-    }, [closePanel]);
-
     const animatedContentStyle = useAnimatedStyle(() => ({
         transform: [{translateX: translateX.value}],
     }));
@@ -148,30 +144,35 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
     }
 
     return (
-        <Animated.View style={styles.container}>
-            <GestureDetector gesture={panGesture}>
-                <Animated.View style={[styles.contentWrapper, {backgroundColor: theme.centerChannelBg}, animatedContentStyle]}>
+        <GestureDetector gesture={panGesture}>
+            <View
+                style={styles.container}
+                pointerEvents='box-none'
+            >
+                <Animated.View
+                    style={[styles.contentWrapper, {backgroundColor: theme.centerChannelBg}, animatedContentStyle]}
+                    pointerEvents={isClosing ? 'none' : 'auto'}
+                >
                     <Channel
                         componentId={Screens.HOME}
                         isTabletView={true}
                         onSwipeBack={handleSwipeBack}
                     />
                 </Animated.View>
-            </GestureDetector>
-            <Animated.View
-                style={[
-                    styles.memberPanelContainer,
-                    {backgroundColor: theme.sidebarBg},
-                    animatedPanelStyle,
-                ]}
-            >
-                <MemberPanel
-                    channelId={displayedChannelId}
-                    componentId={Screens.HOME}
-                    onMemberPress={handleMemberPress}
-                />
-            </Animated.View>
-        </Animated.View>
+                <Animated.View
+                    style={[
+                        styles.memberPanelContainer,
+                        {backgroundColor: theme.sidebarBg},
+                        animatedPanelStyle,
+                    ]}
+                >
+                    <MemberPanel
+                        channelId={displayedChannelId}
+                        componentId={Screens.HOME}
+                    />
+                </Animated.View>
+            </View>
+        </GestureDetector>
     );
 };
 

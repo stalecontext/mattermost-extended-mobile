@@ -4,6 +4,9 @@
 import {SYSTEM_IDENTIFIERS} from '@constants/database';
 import DatabaseManager from '@database/manager';
 import NetworkManager from '@managers/network_manager';
+import {queryAllCustomEmojis} from '@queries/servers/custom_emoji';
+import {EmojiIndicesByAlias} from '@utils/emoji';
+import {logDebug, logError} from '@utils/log';
 
 import type {ResyncResponse} from '../types';
 
@@ -17,36 +20,42 @@ import type {ResyncResponse} from '../types';
  */
 export async function syncEmojiUsage(serverUrl: string): Promise<{error?: unknown; data?: ResyncResponse}> {
     try {
-        console.log('[EMOJI_SYNC] Starting sync...');
         const client = NetworkManager.getClient(serverUrl);
         const data = await client.resyncEmojiUsage();
 
-        console.log('[EMOJI_SYNC] Raw response from plugin:', JSON.stringify(data, null, 2));
-
         if (data.error) {
-            console.error('[EMOJI_SYNC] Plugin returned error:', data.error);
+            logError('[EmojiUsage.syncEmojiUsage] Plugin returned error:', data.error);
             return {error: data.error};
         }
 
-        console.log('[EMOJI_SYNC] Number of emojis returned:', data.emojis?.length);
-
         // Extract emoji names in order (already sorted by count from plugin)
-        // Use raw names - the plugin stores canonical emoji names from the server
-        const emojiNames = data.emojis.map((e) => e.name).filter((name) => name && name.length > 0);
+        const rawEmojiNames = data.emojis.map((e) => e.name).filter((name) => name && name.length > 0);
 
-        console.log('[EMOJI_SYNC] Filtered emoji names count:', emojiNames.length);
-        console.log('[EMOJI_SYNC] First 10 emoji names:', emojiNames.slice(0, 10));
-        console.log('[EMOJI_SYNC] All emoji names:', emojiNames);
-
-        if (emojiNames.length === 0) {
-            console.log('[EMOJI_SYNC] No emojis to store');
+        if (rawEmojiNames.length === 0) {
+            logDebug('[EmojiUsage.syncEmojiUsage] No emojis returned from plugin');
             return {data};
         }
 
-        // Update the local recently used emojis
-        const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+        // Get database to query custom emojis
+        const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
 
-        console.log('[EMOJI_SYNC] Clearing existing list...');
+        // Get all custom emoji names from database
+        const customEmojis = await queryAllCustomEmojis(database).fetch();
+        const customEmojiNames = new Set(customEmojis.map((e) => e.name));
+
+        // Filter to only include valid emojis (built-in or custom)
+        const emojiNames = rawEmojiNames.filter((name) => {
+            const isBuiltIn = EmojiIndicesByAlias.has(name);
+            const isCustom = customEmojiNames.has(name);
+            return isBuiltIn || isCustom;
+        });
+
+        logDebug('[EmojiUsage.syncEmojiUsage] Valid emojis:', emojiNames.length, 'of', rawEmojiNames.length, 'from plugin');
+
+        if (emojiNames.length === 0) {
+            logDebug('[EmojiUsage.syncEmojiUsage] No valid emojis found');
+            return {data};
+        }
 
         // First clear the existing list to ensure clean state
         await operator.handleSystem({
@@ -57,22 +66,20 @@ export async function syncEmojiUsage(serverUrl: string): Promise<{error?: unknow
             prepareRecordsOnly: false,
         });
 
-        const valueToStore = JSON.stringify(emojiNames);
-        console.log('[EMOJI_SYNC] Storing new list:', valueToStore);
-
         // Then set the new list from the plugin
         await operator.handleSystem({
             systems: [{
                 id: SYSTEM_IDENTIFIERS.RECENT_REACTIONS,
-                value: valueToStore,
+                value: JSON.stringify(emojiNames),
             }],
             prepareRecordsOnly: false,
         });
 
-        console.log('[EMOJI_SYNC] Done! Synced', emojiNames.length, 'emojis');
+        logDebug('[EmojiUsage.syncEmojiUsage] Synced', emojiNames.length, 'emojis');
         return {data};
     } catch (error) {
-        console.error('[EMOJI_SYNC] Error:', error);
+        // Plugin may not be installed, silently fail
+        logError('[EmojiUsage.syncEmojiUsage] Error:', error);
         return {error};
     }
 }
@@ -92,7 +99,7 @@ export async function fetchEmojiUsage(serverUrl: string): Promise<{error?: unkno
         const emojiNames = data.map((e) => e.name).filter((name) => name && name.length > 0);
         return {emojiNames};
     } catch (error) {
-        console.error('[EmojiUsage.fetchEmojiUsage] Error:', error);
+        logError('[EmojiUsage.fetchEmojiUsage] Error:', error);
         return {error};
     }
 }

@@ -69,7 +69,7 @@ const Emoji = (props: EmojiProps) => {
     if (displayTextOnly || (!imageUrl && !assetImage && !unicode)) {
         return (
             <Text
-                style={[commonStyle, textStyle]}
+                style={[commonStyle, textStyle, size ? {width: size, height: size, textAlign: 'center'} : undefined]}
                 testID={testID}
             >
                 {literal}

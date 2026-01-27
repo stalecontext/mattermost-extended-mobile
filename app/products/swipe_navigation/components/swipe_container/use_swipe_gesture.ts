@@ -88,6 +88,8 @@ export default function useSwipeGesture({
     const panGesture = Gesture.Pan().
         activeOffsetX([-GESTURE_ACTIVE_OFFSET_X, GESTURE_ACTIVE_OFFSET_X]).
         failOffsetY([-GESTURE_FAIL_OFFSET_Y, GESTURE_FAIL_OFFSET_Y]).
+        minPointers(1).
+        maxPointers(1).
         enabled(enabled).
         onStart(() => {
             'worklet';

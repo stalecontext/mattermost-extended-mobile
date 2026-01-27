@@ -32,6 +32,13 @@ Mobile support for the `com.github.mattermost-emoji-categorizer` server plugin t
 
 **Status:** Implemented
 
+### Discord-Style Swipe Navigation
+Replaces the default iOS edge-swipe navigation with Discord-style swipe gestures on phones. Swipe right to slide the channel away and reveal the channel list underneath. Swipe left to open a member panel showing online/offline channel members.
+
+**Documentation:** [swipe-navigation.md](./swipe-navigation.md)
+
+**Status:** Implemented
+
 ---
 
 ## Architecture Patterns Used

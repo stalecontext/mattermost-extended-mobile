@@ -53,7 +53,6 @@ const SwipeContainer = ({
     const {
         translateX,
         panGesture,
-        closePanel,
     } = useSwipeGesture({
         onSwipeBack: handleSwipeBack,
         onMemberPanelOpen,
@@ -73,32 +72,26 @@ const SwipeContainer = ({
         };
     });
 
-    const handleMemberPress = useCallback(() => {
-        // Close panel when a member is pressed (after navigating to their profile)
-        closePanel();
-    }, [closePanel]);
-
     return (
-        <View style={styles.container}>
-            <GestureDetector gesture={panGesture}>
+        <GestureDetector gesture={panGesture}>
+            <View style={styles.container}>
                 <Animated.View style={[styles.contentWrapper, {backgroundColor: theme.centerChannelBg}, animatedContentStyle]}>
                     {children}
                 </Animated.View>
-            </GestureDetector>
-            <Animated.View
-                style={[
-                    styles.memberPanelContainer,
-                    {backgroundColor: theme.sidebarBg},
-                    animatedPanelStyle,
-                ]}
-            >
-                <MemberPanel
-                    channelId={channelId}
-                    componentId={componentId}
-                    onMemberPress={handleMemberPress}
-                />
-            </Animated.View>
-        </View>
+                <Animated.View
+                    style={[
+                        styles.memberPanelContainer,
+                        {backgroundColor: theme.sidebarBg},
+                        animatedPanelStyle,
+                    ]}
+                >
+                    <MemberPanel
+                        channelId={channelId}
+                        componentId={componentId}
+                    />
+                </Animated.View>
+            </View>
+        </GestureDetector>
     );
 };
 
