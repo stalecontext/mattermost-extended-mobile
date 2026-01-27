@@ -15,6 +15,7 @@ This is a customized fork of mattermost-mobile with additional features.
 - **[docs/fork/discord-replies.md](docs/fork/discord-replies.md)** - Discord-style multi-quote replies implementation
 - **[docs/fork/channel-sync.md](docs/fork/channel-sync.md)** - Channel sync plugin support
 - **[docs/fork/read-receipts.md](docs/fork/read-receipts.md)** - Read receipts plugin support
+- **[docs/fork/emoji-categorizer.md](docs/fork/emoji-categorizer.md)** - Emoji categorizer plugin support
 
 ### Custom Features
 

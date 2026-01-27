@@ -25,6 +25,13 @@ Mobile support for the `com.github.mattermost-read-receipts` server plugin that 
 
 **Status:** Implemented
 
+### Emoji Categorizer Plugin Support
+Mobile support for the `com.github.mattermost-emoji-categorizer` server plugin that organizes custom emojis into collaborative categories. Categories appear in the emoji picker after "Recently Used" with custom emoji icons in the category bar.
+
+**Documentation:** [emoji-categorizer.md](./emoji-categorizer.md)
+
+**Status:** Implemented
+
 ---
 
 ## Architecture Patterns Used
