@@ -3,9 +3,9 @@
 
 import {fetchChannelFollowers} from '@read_receipts/actions/remote';
 import {useChannelFollowers, useReadReceiptsPermissions} from '@read_receipts/store';
-import React, {useCallback, useEffect} from 'react';
+import React, {useCallback, useEffect, useRef} from 'react';
 import {defineMessages, useIntl} from 'react-intl';
-import {Keyboard, Text, TouchableOpacity} from 'react-native';
+import {AppState, Keyboard, Text, TouchableOpacity} from 'react-native';
 
 import CompassIcon from '@components/compass_icon';
 import {Screens} from '@constants';
@@ -68,11 +68,30 @@ function ChannelFollowersIndicator({channelId, channelType, location = Screens.C
         permissions.enable_channel_indicator &&
         (!isDmOrGm || permissions.enable_in_direct_messages);
 
-    // Fetch followers when showing
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Fetch followers when showing and poll every 5 seconds
     useEffect(() => {
-        if (shouldShow && channelId) {
-            fetchChannelFollowers(serverUrl, channelId);
+        if (!shouldShow || !channelId) {
+            return undefined;
         }
+
+        // Initial fetch
+        fetchChannelFollowers(serverUrl, channelId);
+
+        // Set up polling interval
+        intervalRef.current = setInterval(() => {
+            if (AppState.currentState === 'active') {
+                fetchChannelFollowers(serverUrl, channelId);
+            }
+        }, 5000);
+
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
     }, [shouldShow, serverUrl, channelId]);
 
     const handlePress = useCallback(() => {

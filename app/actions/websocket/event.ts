@@ -3,6 +3,7 @@
 
 import {handleAgentPostUpdate} from '@agents/actions/websocket';
 import {handleChannelSyncRefreshEvent} from '@channel_sync/actions/websocket';
+import {handlePostCreatedForReadReceipts} from '@read_receipts/actions/websocket';
 
 import * as bookmark from '@actions/local/channel_bookmark';
 import {handleBoRPostBurnedEvent, handleBoRPostRevealedEvent} from '@actions/websocket/burn_on_read';
@@ -29,6 +30,7 @@ export async function handleWebSocketEvent(serverUrl: string, msg: WebSocketMess
         case WebsocketEvents.POSTED:
         case WebsocketEvents.EPHEMERAL_MESSAGE:
             posts.handleNewPostEvent(serverUrl, msg);
+            handlePostCreatedForReadReceipts(serverUrl, msg);
             break;
         case WebsocketEvents.POST_EDITED:
             posts.handlePostEdited(serverUrl, msg);
