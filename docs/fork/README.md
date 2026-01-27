@@ -18,6 +18,13 @@ Mobile support for the `com.example.channel-sync` server plugin that syncs sideb
 
 **Status:** Implemented
 
+### Read Receipts Plugin Support
+Mobile support for the `com.github.mattermost-read-receipts` server plugin that tracks who has read posts and channels. Features include "View who read this" post menu option, "X following" channel indicator, and "Last Seen" in user profiles.
+
+**Documentation:** [read-receipts.md](./read-receipts.md)
+
+**Status:** Implemented
+
 ---
 
 ## Architecture Patterns Used

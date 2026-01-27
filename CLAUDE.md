@@ -14,6 +14,7 @@ This is a customized fork of mattermost-mobile with additional features.
 - **[docs/fork/README.md](docs/fork/README.md)** - Fork overview and architecture patterns
 - **[docs/fork/discord-replies.md](docs/fork/discord-replies.md)** - Discord-style multi-quote replies implementation
 - **[docs/fork/channel-sync.md](docs/fork/channel-sync.md)** - Channel sync plugin support
+- **[docs/fork/read-receipts.md](docs/fork/read-receipts.md)** - Read receipts plugin support
 
 ### Custom Features
 
@@ -41,6 +42,23 @@ Mobile support for the `com.example.channel-sync` server plugin that syncs sideb
 - `app/products/channel_sync/components/quick_join_channel_item/` - Quick Join UI
 
 **Path alias:** `@channel_sync/*` → `app/products/channel_sync/*`
+
+#### Read Receipts Plugin Support
+Mobile support for the `com.github.mattermost-read-receipts` server plugin that tracks who has read posts and channels.
+
+**New files:**
+- `app/products/read_receipts/` - Types, constants, client, store, actions, components
+- `app/products/read_receipts/client/rest.ts` - ClientMix for plugin API
+- `app/products/read_receipts/store/read_receipts_store.ts` - Ephemeral state with RxJS hooks
+- `app/products/read_receipts/actions/remote.ts` - API actions (permissions, readers, followers)
+- `app/products/read_receipts/actions/websocket.ts` - Refresh followers on new posts
+- `app/products/read_receipts/components/channel_followers_indicator/` - "X following" indicator
+- `app/products/read_receipts/components/user_last_seen/` - User profile "Last Seen"
+- `app/products/read_receipts/components/view_readers_option/` - Post menu option
+- `app/screens/post_readers/` - Post readers modal
+- `app/screens/channel_readers/` - Channel readers modal
+
+**Path alias:** `@read_receipts/*` → `app/products/read_receipts/*`
 
 ---
 
