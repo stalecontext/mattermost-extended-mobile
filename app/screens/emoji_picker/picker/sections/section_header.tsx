@@ -31,7 +31,7 @@ const getStyleSheetFromTheme = makeStyleSheetFromTheme((theme: Theme) => {
             height: SECTION_HEADER_HEIGHT,
             justifyContent: 'center',
             backgroundColor: theme.centerChannelBg,
-            paddingHorizontal: 12,
+            paddingRight: 12,
         },
         sectionTitle: {
             color: changeOpacity(theme.centerChannelColor, 0.56),
