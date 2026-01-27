@@ -31,8 +31,10 @@ const messages = defineMessages({
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     container: {
-        paddingVertical: 8,
+        paddingTop: 8,
+        paddingBottom: 6,
         paddingHorizontal: 16,
+        marginBottom: -6,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
