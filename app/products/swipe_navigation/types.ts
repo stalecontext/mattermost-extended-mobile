@@ -50,6 +50,14 @@ export type UseSwipeGestureReturn = {
 };
 
 /**
+ * Custom status info
+ */
+export type CustomStatusInfo = {
+    emoji: string;
+    text: string;
+};
+
+/**
  * Member with status for the member panel
  */
 export type MemberWithStatus = {
@@ -60,6 +68,7 @@ export type MemberWithStatus = {
     lastName: string;
     status: UserStatusType;
     lastPictureUpdate: number;
+    customStatus?: CustomStatusInfo;
 };
 
 /**

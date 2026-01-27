@@ -77,6 +77,7 @@ export const SETTINGS_DISPLAY_CRT = 'SettingsDisplayCRT';
 export const SETTINGS_DISPLAY_THEME = 'SettingsDisplayTheme';
 export const SETTINGS_DISPLAY_TIMEZONE = 'SettingsDisplayTimezone';
 export const SETTINGS_DISPLAY_TIMEZONE_SELECT = 'SettingsDisplayTimezoneSelect';
+export const SETTINGS_HAPTIC_FEEDBACK = 'SettingsHapticFeedback';
 export const SETTINGS_NOTIFICATION = 'SettingsNotification';
 export const SETTINGS_NOTIFICATION_AUTO_RESPONDER = 'SettingsNotificationAutoResponder';
 export const SETTINGS_NOTIFICATION_EMAIL = 'SettingsNotificationEmail';
@@ -168,6 +169,7 @@ export default {
     SETTINGS_DISPLAY_THEME,
     SETTINGS_DISPLAY_TIMEZONE,
     SETTINGS_DISPLAY_TIMEZONE_SELECT,
+    SETTINGS_HAPTIC_FEEDBACK,
     SETTINGS_NOTIFICATION,
     SETTINGS_NOTIFICATION_AUTO_RESPONDER,
     SETTINGS_NOTIFICATION_EMAIL,

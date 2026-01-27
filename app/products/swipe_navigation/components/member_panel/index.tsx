@@ -1,27 +1,28 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {fetchChannelMembersFromPlugin} from '@member_list/actions/remote';
+import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {useIntl} from 'react-intl';
 import {SectionList, StyleSheet, Text, View} from 'react-native';
 
-import {fetchChannelMemberships} from '@actions/remote/channel';
 import Loading from '@components/loading';
 import ProfilePicture from '@components/profile_picture';
 import TouchableWithFeedback from '@components/touchable_with_feedback';
 import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
-import DatabaseManager from '@database/manager';
-import {queryUsersOnChannel} from '@queries/servers/channel';
+import NetworkManager from '@managers/network_manager';
+import {observeTeammateNameDisplay} from '@queries/servers/user';
 import {openUserProfileModal} from '@screens/navigation';
 import {makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 import {displayUsername} from '@utils/user';
 
-import {UserStatus, type MemberSection, type MemberWithStatus} from '../../types';
+import {UserStatus, type MemberSection, type MemberWithStatus, type UserStatusType} from '../../types';
 
-import type UserModel from '@typings/database/models/servers/user';
+import type {WithDatabaseArgs} from '@typings/database/database';
 import type {AvailableScreens} from '@typings/screens/navigation';
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
@@ -63,10 +64,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         color: theme.sidebarText,
         ...typography('Body', 200),
     },
-    memberUsername: {
+    memberStatus: {
         color: theme.sidebarText,
         ...typography('Body', 75),
         opacity: 0.64,
+        marginTop: 2,
     },
     loadingContainer: {
         flex: 1,
@@ -87,12 +89,14 @@ type MemberPanelProps = {
     channelId: string;
     componentId?: AvailableScreens;
     onMemberPress?: () => void;
+    teammateNameDisplay?: string;
 };
 
 const MemberPanel = ({
     channelId,
     componentId,
     onMemberPress,
+    teammateNameDisplay = 'username',
 }: MemberPanelProps) => {
     const intl = useIntl();
     const theme = useTheme();
@@ -105,30 +109,31 @@ const MemberPanel = ({
 
     const fetchMembers = useCallback(async () => {
         try {
-            // Fetch channel memberships from server
-            await fetchChannelMemberships(serverUrl, channelId, {page: 0, per_page: 100, sort: 'status'});
+            const client = NetworkManager.getClient(serverUrl);
+            const {data, error} = await fetchChannelMembersFromPlugin(client, channelId, 0, 200);
 
             if (!isMounted.current) {
                 return;
             }
 
-            // Query users from database
-            const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
-            const users = await queryUsersOnChannel(database, channelId).fetch();
-
-            if (!isMounted.current) {
+            if (error || !data) {
+                setLoading(false);
                 return;
             }
 
-            // Map users to MemberWithStatus
-            const mappedMembers: MemberWithStatus[] = users.map((user: UserModel) => ({
-                id: user.id,
-                username: user.username,
-                nickname: user.nickname || '',
-                firstName: user.firstName || '',
-                lastName: user.lastName || '',
-                status: (user.status as MemberWithStatus['status']) || UserStatus.Offline,
-                lastPictureUpdate: user.lastPictureUpdate || 0,
+            // Map plugin response to MemberWithStatus
+            const mappedMembers: MemberWithStatus[] = data.members.map((member) => ({
+                id: member.user_id,
+                username: member.username,
+                nickname: member.nickname,
+                firstName: member.first_name,
+                lastName: member.last_name,
+                status: (member.status as UserStatusType) || UserStatus.Offline,
+                lastPictureUpdate: 0, // Not provided by plugin
+                customStatus: member.custom_status ? {
+                    emoji: member.custom_status.emoji,
+                    text: member.custom_status.text,
+                } : undefined,
             }));
 
             // Sort by status (online first, then offline)
@@ -228,8 +233,13 @@ const MemberPanel = ({
                 last_name: item.lastName,
             } as UserProfile,
             intl.locale,
-            'full_name',
+            teammateNameDisplay,
         );
+
+        // Format custom status - emoji and text
+        const customStatusText = item.customStatus
+            ? `${item.customStatus.emoji} ${item.customStatus.text}`.trim()
+            : '';
 
         return (
             <TouchableWithFeedback
@@ -238,7 +248,10 @@ const MemberPanel = ({
                 type='opacity'
             >
                 <ProfilePicture
-                    author={{id: item.id} as UserProfile}
+                    author={{
+                        id: item.id,
+                        status: item.status,
+                    } as UserProfile}
                     size={32}
                     showStatus={true}
                     statusSize={12}
@@ -250,18 +263,18 @@ const MemberPanel = ({
                     >
                         {displayName || item.username}
                     </Text>
-                    {displayName && displayName !== item.username && (
+                    {customStatusText && (
                         <Text
-                            style={styles.memberUsername}
+                            style={styles.memberStatus}
                             numberOfLines={1}
                         >
-                            {`@${item.username}`}
+                            {customStatusText}
                         </Text>
                     )}
                 </View>
             </TouchableWithFeedback>
         );
-    }, [intl.locale, styles, handleMemberPress]);
+    }, [intl.locale, teammateNameDisplay, styles, handleMemberPress]);
 
     const keyExtractor = useCallback((item: MemberWithStatus) => item.id, []);
 
@@ -300,4 +313,8 @@ const MemberPanel = ({
     );
 };
 
-export default MemberPanel;
+const enhanced = withObservables([], ({database}: WithDatabaseArgs) => ({
+    teammateNameDisplay: observeTeammateNameDisplay(database),
+}));
+
+export default withDatabase(enhanced(MemberPanel));

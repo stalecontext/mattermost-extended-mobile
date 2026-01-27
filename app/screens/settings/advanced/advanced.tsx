@@ -13,6 +13,7 @@ import {useServerUrl} from '@context/server';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {goToScreen, popTopScreen} from '@screens/navigation';
+import {gotoSettingsScreen} from '@screens/settings/config';
 import {deleteFileCache, getAllFilesInCachesDirectory, getFormattedFileSize} from '@utils/file';
 
 import type {AvailableScreens} from '@typings/screens/navigation';
@@ -69,6 +70,13 @@ const AdvancedSettings = ({
         }
     }, [files.length, getAllCachedFiles, intl, serverUrl]));
 
+    const onPressHapticFeedback = usePreventDoubleTap(useCallback(() => {
+        const screen = Screens.SETTINGS_HAPTIC_FEEDBACK;
+        const title = intl.formatMessage({id: 'settings.advanced.haptic_feedback', defaultMessage: 'Haptic Feedback'});
+
+        gotoSettingsScreen(screen, title);
+    }, [intl]));
+
     const onPressComponentLibrary = useCallback(() => {
         const screen = Screens.COMPONENT_LIBRARY;
         const title = intl.formatMessage({id: 'settings.advanced_settings.component_library', defaultMessage: 'Component library'});
@@ -102,6 +110,16 @@ const AdvancedSettings = ({
                     label={intl.formatMessage({id: 'settings.advanced.delete_data', defaultMessage: 'Delete local files'})}
                     testID='advanced_settings.delete_data.option'
                     type='none'
+                />
+                <SettingSeparator/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={onPressHapticFeedback}
+            >
+                <SettingOption
+                    label={intl.formatMessage({id: 'settings.advanced.haptic_feedback', defaultMessage: 'Haptic Feedback'})}
+                    testID='advanced_settings.haptic_feedback.option'
+                    type='arrow'
                 />
                 <SettingSeparator/>
             </TouchableOpacity>

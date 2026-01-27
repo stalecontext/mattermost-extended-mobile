@@ -34,6 +34,7 @@ module.exports = {
                 '@i18n': './app/i18n',
                 '@init': './app/init',
                 '@managers': './app/managers',
+                '@member_list': './app/products/member_list',
                 '@playbooks': './app/products/playbooks',
                 '@queries': './app/queries',
                 '@screens': './app/screens',

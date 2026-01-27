@@ -7,6 +7,7 @@ import {createIntl} from 'react-intl';
 import ReactNativeHapticFeedback, {HapticFeedbackTypes} from 'react-native-haptic-feedback';
 
 import {DEFAULT_LOCALE, getTranslations} from '@i18n';
+import HapticFeedbackStore from '@store/haptic_feedback_store';
 
 export type SortByCreatAt = (Session | Channel | Team | Post) & {
     create_at: number;
@@ -35,6 +36,10 @@ export const generateId = (prefix?: string): string => {
 };
 
 export function hapticFeedback(method: HapticFeedbackTypes = HapticFeedbackTypes.impactLight) {
+    if (!HapticFeedbackStore.isEnabled()) {
+        return;
+    }
+
     ReactNativeHapticFeedback.trigger(method, {
         enableVibrateFallback: false,
         ignoreAndroidSystemSettings: false,

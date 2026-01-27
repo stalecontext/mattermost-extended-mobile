@@ -507,7 +507,7 @@ const Post = ({
                 testID={itemTestID}
                 onPress={handlePress}
                 onLongPress={showPostOptions}
-                delayLongPress={200}
+                delayLongPress={75}
                 underlayColor={changeOpacity(theme.centerChannelColor, 0.1)}
                 style={styles.postContent}
             >

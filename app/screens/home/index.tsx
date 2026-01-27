@@ -15,6 +15,7 @@ import ServerVersion from '@components/server_version';
 import {Events, Launch, Screens} from '@constants';
 import {useTheme} from '@context/theme';
 import {useAppState, useIsTablet} from '@hooks/device';
+import {useInitHapticFeedbackStore} from '@hooks/haptic_feedback';
 import SecurityManager from '@managers/security_manager';
 import {getAllServers} from '@queries/app/servers';
 import {findChannels, popToRoot} from '@screens/navigation';
@@ -71,6 +72,8 @@ export function HomeScreen(props: HomeProps) {
     const keyboardState = useKeyboardState();
     const isTablet = useIsTablet();
     const [isEmojiSearchFocused, setIsEmojiSearchFocused] = React.useState(false);
+
+    useInitHapticFeedbackStore();
 
     useEffect(() => {
         SecurityManager.start();
