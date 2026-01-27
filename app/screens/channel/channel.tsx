@@ -46,6 +46,7 @@ type ChannelProps = {
     includeBookmarkBar?: boolean;
     includeChannelBanner: boolean;
     scheduledPostCount: number;
+    onSwipeBack?: () => void;
 };
 
 const styles = StyleSheet.create({
@@ -70,6 +71,7 @@ const Channel = ({
     includeBookmarkBar,
     includeChannelBanner,
     scheduledPostCount,
+    onSwipeBack,
 }: ChannelProps) => {
     useGMasDMNotice(currentUserId, channelType, dismissedGMasDMNotice, hasGMasDMFeature);
     const isTablet = useIsTablet();
@@ -85,22 +87,29 @@ const Channel = ({
     const [isEmojiSearchFocused, setIsEmojiSearchFocused] = useState(false);
 
     const safeAreaViewEdges: Edge[] = useMemo(() => {
-        if (isTablet) {
+        // Use isTabletView prop if provided, otherwise use detected isTablet
+        const useTabletLayout = isTabletView ?? isTablet;
+        if (useTabletLayout) {
             return ['left', 'right'];
         }
         if (isEmojiSearchFocused) {
             return ['left', 'right'];
         }
         return ['left', 'right', 'bottom'];
-    }, [isTablet, isEmojiSearchFocused]);
+    }, [isTablet, isTabletView, isEmojiSearchFocused]);
 
     const handleBack = useCallback(() => {
-        popTopScreen(componentId);
-    }, [componentId]);
+        if (onSwipeBack) {
+            onSwipeBack();
+        } else {
+            popTopScreen(componentId);
+        }
+    }, [componentId, onSwipeBack]);
 
     useAndroidHardwareBackHandler(componentId, handleBack);
 
-    const marginTop = defaultHeight + (isTablet ? 0 : -insets.top);
+    const useTabletLayoutForMargin = isTabletView ?? isTablet;
+    const marginTop = defaultHeight + (useTabletLayoutForMargin ? 0 : -insets.top);
     useEffect(() => {
         // This is done so that the header renders
         // and the screen does not look totally blank
@@ -196,7 +205,7 @@ const Channel = ({
                 onLayout={onLayout}
                 nativeID={componentId ? SecurityManager.getShieldScreenId(componentId) : undefined}
             >
-                {isTablet ? (
+                {isTablet || onSwipeBack ? (
                     channelContent
                 ) : (
                     <SwipeContainer

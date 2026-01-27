@@ -1,10 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {useIntl} from 'react-intl';
 import {SectionList, StyleSheet, Text, View} from 'react-native';
-import {useDerivedValue, type SharedValue} from 'react-native-reanimated';
 
 import {fetchChannelMemberships} from '@actions/remote/channel';
 import Loading from '@components/loading';
@@ -87,14 +86,12 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
 type MemberPanelProps = {
     channelId: string;
     componentId?: AvailableScreens;
-    isPanelOpen: SharedValue<boolean>;
     onMemberPress?: () => void;
 };
 
 const MemberPanel = ({
     channelId,
     componentId,
-    isPanelOpen,
     onMemberPress,
 }: MemberPanelProps) => {
     const intl = useIntl();
@@ -103,26 +100,25 @@ const MemberPanel = ({
     const styles = getStyleSheet(theme);
 
     const [members, setMembers] = useState<MemberWithStatus[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [hasFetched, setHasFetched] = useState(false);
-
-    // Track panel open state
-    const panelOpenValue = useDerivedValue(() => isPanelOpen.value);
+    const [loading, setLoading] = useState(true);
+    const isMounted = useRef(true);
 
     const fetchMembers = useCallback(async () => {
-        if (hasFetched || loading) {
-            return;
-        }
-
-        setLoading(true);
-
         try {
             // Fetch channel memberships from server
             await fetchChannelMemberships(serverUrl, channelId, {page: 0, per_page: 100, sort: 'status'});
 
+            if (!isMounted.current) {
+                return;
+            }
+
             // Query users from database
             const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
             const users = await queryUsersOnChannel(database, channelId).fetch();
+
+            if (!isMounted.current) {
+                return;
+            }
 
             // Map users to MemberWithStatus
             const mappedMembers: MemberWithStatus[] = users.map((user: UserModel) => ({
@@ -147,25 +143,25 @@ const MemberPanel = ({
             });
 
             setMembers(sortedMembers);
-            setHasFetched(true);
         } catch {
             // Silently handle errors
         } finally {
-            setLoading(false);
-        }
-    }, [serverUrl, channelId, hasFetched, loading]);
-
-    // Fetch members when panel opens
-    useEffect(() => {
-        // We use a polling approach since we can't use worklet callbacks directly
-        const interval = setInterval(() => {
-            if (panelOpenValue.value && !hasFetched) {
-                fetchMembers();
+            if (isMounted.current) {
+                setLoading(false);
             }
-        }, 100);
+        }
+    }, [serverUrl, channelId]);
 
-        return () => clearInterval(interval);
-    }, [panelOpenValue, hasFetched, fetchMembers]);
+    // Fetch members on mount and when channelId changes
+    useEffect(() => {
+        isMounted.current = true;
+        setLoading(true);
+        fetchMembers();
+
+        return () => {
+            isMounted.current = false;
+        };
+    }, [fetchMembers]);
 
     const handleMemberPress = useCallback((member: MemberWithStatus) => {
         openUserProfileModal(intl, theme, {
@@ -279,7 +275,7 @@ const MemberPanel = ({
                     )}
                 </Text>
             </View>
-            {loading && !hasFetched ? (
+            {loading ? (
                 <View style={styles.loadingContainer}>
                     <Loading color={theme.sidebarText}/>
                 </View>

@@ -2,13 +2,14 @@
 // See LICENSE.txt for license information.
 
 import {syncEmojiUsage} from '@emoji_usage/actions/remote';
-import React, {useCallback, useEffect, useState} from 'react';
-import {type LayoutChangeEvent, StyleSheet, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {DeviceEventEmitter, type LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Animated, {Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming} from 'react-native-reanimated';
 
 import CompassIcon from '@components/compass_icon';
 import Loading from '@components/loading';
 import SearchBar, {type SearchProps} from '@components/search';
+import {Events} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {useIsTablet} from '@hooks/device';
@@ -26,11 +27,23 @@ const styles = StyleSheet.create({
     flex: {flex: 1},
     row: {flexDirection: 'row'},
     syncButton: {
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        width: 32,
-        height: 32,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         marginLeft: 8,
+        borderRadius: 4,
+    },
+    syncButtonDisabled: {
+        opacity: 0.6,
+    },
+    syncIcon: {
+        marginRight: 4,
+    },
+    syncText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });
 
@@ -43,7 +56,13 @@ const PickerHeader = ({skinTone, ...props}: Props) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const syncRotation = useSharedValue(0);
 
-    const syncIconColor = changeOpacity(theme.centerChannelColor, 0.56);
+    const syncTextColor = changeOpacity(theme.centerChannelColor, 0.72);
+    const syncButtonBg = changeOpacity(theme.centerChannelColor, 0.08);
+
+    const dynamicStyles = useMemo(() => ({
+        syncButton: {backgroundColor: syncButtonBg},
+        syncText: {color: syncTextColor},
+    }), [syncButtonBg, syncTextColor]);
 
     useEffect(() => {
         const req = requestAnimationFrame(() => {
@@ -70,6 +89,7 @@ const PickerHeader = ({skinTone, ...props}: Props) => {
             return;
         }
         setIsSyncing(true);
+        DeviceEventEmitter.emit(Events.EMOJI_USAGE_SYNCING, true);
         syncRotation.value = withRepeat(
             withTiming(360, {duration: 1000, easing: Easing.linear}),
             -1, // infinite repeats
@@ -79,6 +99,7 @@ const PickerHeader = ({skinTone, ...props}: Props) => {
         } finally {
             setIsSyncing(false);
             syncRotation.value = 0;
+            DeviceEventEmitter.emit(Events.EMOJI_USAGE_SYNCING, false);
         }
     }, [isSyncing, serverUrl, syncRotation]);
 
@@ -115,23 +136,27 @@ const PickerHeader = ({skinTone, ...props}: Props) => {
             </View>
             <TouchableOpacity
                 onPress={handleSync}
-                style={styles.syncButton}
+                style={[styles.syncButton, dynamicStyles.syncButton, isSyncing && styles.syncButtonDisabled]}
                 disabled={isSyncing}
                 testID='emoji_picker.header.sync_button'
             >
                 {isSyncing ? (
                     <Loading
                         size='small'
-                        color={syncIconColor}
+                        color={syncTextColor}
                     />
                 ) : (
-                    <Animated.View style={syncAnimatedStyle}>
-                        <CompassIcon
-                            name='sync'
-                            size={20}
-                            color={syncIconColor}
-                        />
-                    </Animated.View>
+                    <>
+                        <Animated.View style={syncAnimatedStyle}>
+                            <CompassIcon
+                                name='sync'
+                                size={14}
+                                color={syncTextColor}
+                                style={styles.syncIcon}
+                            />
+                        </Animated.View>
+                        <Text style={[styles.syncText, dynamicStyles.syncText]}>{'SYNC'}</Text>
+                    </>
                 )}
             </TouchableOpacity>
             <SkinToneSelector

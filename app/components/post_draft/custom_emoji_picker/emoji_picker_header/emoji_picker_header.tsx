@@ -3,7 +3,7 @@
 
 import {syncEmojiUsage} from '@emoji_usage/actions/remote';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {DeviceEventEmitter, Platform, TouchableOpacity, View, type LayoutChangeEvent} from 'react-native';
+import {DeviceEventEmitter, Platform, Text, TouchableOpacity, View, type LayoutChangeEvent} from 'react-native';
 import {useKeyboardState} from 'react-native-keyboard-controller';
 import Animated, {Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue} from 'react-native-reanimated';
 
@@ -45,14 +45,25 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         backgroundColor: theme.centerChannelBg,
     },
     syncButton: {
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        width: 32,
-        height: 32,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         marginLeft: 8,
+        borderRadius: 4,
+        backgroundColor: changeOpacity(theme.centerChannelColor, 0.08),
+    },
+    syncButtonDisabled: {
+        opacity: 0.6,
     },
     syncIcon: {
-        color: changeOpacity(theme.centerChannelColor, 0.56),
+        marginRight: 4,
+    },
+    syncText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: changeOpacity(theme.centerChannelColor, 0.72),
     },
 }));
 
@@ -237,6 +248,7 @@ const EmojiPickerHeader: React.FC<Props> = ({
             return;
         }
         setIsSyncing(true);
+        DeviceEventEmitter.emit(Events.EMOJI_USAGE_SYNCING, true);
         syncRotation.value = withRepeat(
             withTiming(360, {duration: 1000, easing: Easing.linear}),
             -1, // infinite repeats
@@ -246,6 +258,7 @@ const EmojiPickerHeader: React.FC<Props> = ({
         } finally {
             setIsSyncing(false);
             syncRotation.value = 0;
+            DeviceEventEmitter.emit(Events.EMOJI_USAGE_SYNCING, false);
         }
     }, [isSyncing, serverUrl, syncRotation]);
 
@@ -269,23 +282,27 @@ const EmojiPickerHeader: React.FC<Props> = ({
             </View>
             <TouchableOpacity
                 onPress={handleSync}
-                style={styles.syncButton}
+                style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
                 disabled={isSyncing}
                 testID='emoji_picker.header.sync_button'
             >
                 {isSyncing ? (
                     <Loading
                         size='small'
-                        color={styles.syncIcon.color}
+                        color={styles.syncText.color}
                     />
                 ) : (
-                    <Animated.View style={syncAnimatedStyle}>
-                        <CompassIcon
-                            name='sync'
-                            size={20}
-                            style={styles.syncIcon}
-                        />
-                    </Animated.View>
+                    <>
+                        <Animated.View style={syncAnimatedStyle}>
+                            <CompassIcon
+                                name='sync'
+                                size={14}
+                                color={styles.syncText.color}
+                                style={styles.syncIcon}
+                            />
+                        </Animated.View>
+                        <Text style={styles.syncText}>{'SYNC'}</Text>
+                    </>
                 )}
             </TouchableOpacity>
             <SkinToneSelector

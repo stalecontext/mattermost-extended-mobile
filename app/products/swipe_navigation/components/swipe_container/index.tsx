@@ -9,7 +9,6 @@ import Animated, {useAnimatedStyle} from 'react-native-reanimated';
 import {useTheme} from '@context/theme';
 
 import {MEMBER_PANEL_WIDTH} from '../../constants';
-import BackPreview from '../back_preview';
 import MemberPanel from '../member_panel';
 
 import useSwipeGesture from './use_swipe_gesture';
@@ -54,7 +53,6 @@ const SwipeContainer = ({
     const {
         translateX,
         panGesture,
-        isPanelOpen,
         closePanel,
     } = useSwipeGesture({
         onSwipeBack: handleSwipeBack,
@@ -82,9 +80,8 @@ const SwipeContainer = ({
 
     return (
         <View style={styles.container}>
-            <BackPreview translateX={translateX}/>
             <GestureDetector gesture={panGesture}>
-                <Animated.View style={[styles.contentWrapper, animatedContentStyle]}>
+                <Animated.View style={[styles.contentWrapper, {backgroundColor: theme.centerChannelBg}, animatedContentStyle]}>
                     {children}
                 </Animated.View>
             </GestureDetector>
@@ -98,7 +95,6 @@ const SwipeContainer = ({
                 <MemberPanel
                     channelId={channelId}
                     componentId={componentId}
-                    isPanelOpen={isPanelOpen}
                     onMemberPress={handleMemberPress}
                 />
             </Animated.View>

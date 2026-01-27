@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {DeviceEventEmitter, Dimensions} from 'react-native';
+import {DeviceEventEmitter} from 'react-native';
 
 import {General, Navigation as NavigationConstants, Preferences, Screens} from '@constants';
 import {SYSTEM_IDENTIFIERS} from '@constants/database';
@@ -18,7 +18,7 @@ import {queryDisplayNamePreferences} from '@queries/servers/preference';
 import {prepareCommonSystemValues, type PrepareCommonSystemValuesArgs, getCommonSystemValues, getCurrentTeamId, setCurrentChannelId, getCurrentUserId, getConfig, getLicense} from '@queries/servers/system';
 import {addChannelToTeamHistory, addTeamToTeamHistory, getTeamById, removeChannelFromTeamHistory} from '@queries/servers/team';
 import {getCurrentUser, queryUsersById} from '@queries/servers/user';
-import {dismissAllModalsAndPopToRoot, dismissAllModalsAndPopToScreen} from '@screens/navigation';
+import {dismissAllModalsAndPopToRoot} from '@screens/navigation';
 import EphemeralStore from '@store/ephemeral_store';
 import {isTablet} from '@utils/helpers';
 import {logDebug, logError, logInfo} from '@utils/log';
@@ -87,29 +87,12 @@ export async function switchToChannel(serverUrl: string, channelId: string, team
                     await operator.batchRecords(models, 'switchToChannel');
                 }
 
-                if (isTabletDevice) {
-                    await dismissAllModalsAndPopToRoot();
-                    DeviceEventEmitter.emit(NavigationConstants.NAVIGATION_HOME, Screens.CHANNEL);
-                } else {
-                    // Custom swipe navigation handles back gesture, disable native popGesture
-                    // Use horizontal slide animation instead of default vertical
-                    const screenWidth = Dimensions.get('window').width;
-                    await dismissAllModalsAndPopToScreen(Screens.CHANNEL, '', undefined, {
-                        topBar: {visible: false},
-                        popGesture: false,
-                        animations: {
-                            push: {
-                                content: {
-                                    translationX: {
-                                        from: screenWidth,
-                                        to: 0,
-                                        duration: 300,
-                                    },
-                                },
-                            },
-                        },
-                    });
-                }
+                // For both tablet and phone, we just dismiss modals and emit event
+                // The currentChannelId is set above, and the view will react to it
+                // On tablet: AdditionalTabletView renders the channel
+                // On phone: PhoneChannelView renders the channel with swipe navigation
+                await dismissAllModalsAndPopToRoot();
+                DeviceEventEmitter.emit(NavigationConstants.NAVIGATION_HOME, Screens.CHANNEL);
 
                 logInfo('channel switch to', channel?.displayName, channelId, (Date.now() - dt), 'ms');
             }

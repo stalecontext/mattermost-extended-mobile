@@ -6,12 +6,14 @@ import EmojiCategoriesStore from '@emoji_categorizer/store/emoji_categories_stor
 import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
 import {chunk} from 'lodash';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {ActivityIndicator, DeviceEventEmitter, View, StyleSheet} from 'react-native';
 
 import {fetchCustomEmojis} from '@actions/remote/custom_emoji';
 import EmojiCategoryBar from '@components/emoji_category_bar';
+import {Events} from '@constants';
 import {EMOJI_CATEGORY_ICONS, EMOJI_ROW_MARGIN, EMOJI_SIZE, EMOJIS_PER_PAGE, EMOJIS_PER_ROW, EMOJIS_PER_ROW_TABLET} from '@constants/emoji';
 import {useServerUrl} from '@context/server';
+import {useTheme} from '@context/theme';
 import {useIsTablet} from '@hooks/device';
 import {setEmojiCategoryBarIcons, setEmojiCategoryBarSection, useEmojiCategoryBar} from '@hooks/emoji_category_bar';
 import EmojiRow, {type EmojiSectionRow} from '@screens/emoji_picker/picker/sections/emoji_row';
@@ -23,7 +25,12 @@ import {fillEmoji} from '@utils/emoji/helpers';
 import type {CustomEmojiModel} from '@database/models/server';
 import type {EmojiCategory} from '@emoji_categorizer/types';
 
-type SectionListItem = EmojiSection | EmojiSectionRow;
+type LoadingRow = {
+    type: 'loading';
+    key: string;
+};
+
+type SectionListItem = EmojiSection | EmojiSectionRow | LoadingRow;
 
 const categoryToI18n: Record<string, CategoryTranslation> = {};
 
@@ -34,7 +41,10 @@ const emptyEmoji: EmojiAlias = {
 };
 
 const keyExtractor = (item: SectionListItem) => {
-    return (item.type === 'section' ? `${item.key}` : `${item.sectionIndex}-${item.index}-${item.category}`);
+    if (item.type === 'section' || item.type === 'loading') {
+        return item.key;
+    }
+    return `${item.sectionIndex}-${item.index}-${item.category}`;
 };
 
 const getItemType = (item: SectionListItem) => item.type;
@@ -42,6 +52,11 @@ const getItemType = (item: SectionListItem) => item.type;
 const styles = StyleSheet.create({
     container: {flex: 1},
     containerStyle: {paddingBottom: 50, paddingHorizontal: 12},
+    loadingRow: {
+        height: EMOJI_SIZE + EMOJI_ROW_MARGIN,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 type Props = {
@@ -68,12 +83,22 @@ export default function CustomEmojiSections({customEmojis, customEmojisEnabled, 
     const [fetchingCustomEmojis, setFetchingCustomEmojis] = useState(false);
     const [loadedAllCustomEmojis, setLoadedAllCustomEmojis] = useState(false);
     const [pluginCategories, setPluginCategories] = useState<EmojiCategory[]>([]);
+    const [isSyncingEmojis, setIsSyncingEmojis] = useState(false);
     const scrollingToIndex = useRef(false);
     const serverUrl = useServerUrl();
+    const theme = useTheme();
     const isTablet = useIsTablet();
     const {currentIndex, selectedIndex} = useEmojiCategoryBar();
 
     const list = useRef<FlashList<SectionListItem> | null>(null);
+
+    // Listen for emoji sync events
+    useEffect(() => {
+        const listener = DeviceEventEmitter.addListener(Events.EMOJI_USAGE_SYNCING, (syncing: boolean) => {
+            setIsSyncingEmojis(syncing);
+        });
+        return () => listener.remove();
+    }, []);
 
     // Fetch plugin emoji categories on mount
     useEffect(() => {
@@ -154,6 +179,14 @@ export default function CustomEmojiSections({customEmojis, customEmojisEnabled, 
                         break;
                     }
                     case 'recent': {
+                        // Show loading row when syncing
+                        if (isSyncingEmojis) {
+                            acc.push({
+                                type: 'loading',
+                                key: 'recent-loading',
+                            });
+                            return acc;
+                        }
                         const recentMap = (emoji: string) => ({
                             aliases: [],
                             name: emoji,
@@ -200,7 +233,7 @@ export default function CustomEmojiSections({customEmojis, customEmojisEnabled, 
 
             return acc;
         }, []);
-    }, [customEmojis, customEmojisEnabled, file, imageUrl, isTablet, pluginCategories, recentEmojis]);
+    }, [customEmojis, customEmojisEnabled, file, imageUrl, isTablet, isSyncingEmojis, pluginCategories, recentEmojis]);
 
     const stickyHeaderIndices = useMemo(() =>
         sections.
@@ -218,6 +251,20 @@ export default function CustomEmojiSections({customEmojis, customEmojisEnabled, 
             );
         }
 
+        if (item.type === 'loading') {
+            return (
+                <View
+                    key={item.key}
+                    style={styles.loadingRow}
+                >
+                    <ActivityIndicator
+                        size='small'
+                        color={theme.buttonBg}
+                    />
+                </View>
+            );
+        }
+
         return (
             <EmojiRow
                 key={`${item.sectionIndex}-${item.index}-${item.category}`}
@@ -227,7 +274,7 @@ export default function CustomEmojiSections({customEmojis, customEmojisEnabled, 
                 onEmojiPress={onEmojiPress}
             />
         );
-    }, [file, imageUrl, onEmojiPress]);
+    }, [file, imageUrl, onEmojiPress, theme.buttonBg]);
 
     const scrollToIndex = useCallback((index: number) => {
         scrollingToIndex.current = true;
