@@ -5,6 +5,7 @@
 
 import React, {useState, useRef, useImperativeHandle, forwardRef, useMemo, useCallback} from 'react';
 import {type LayoutChangeEvent, type NativeSyntheticEvent, type StyleProp, type TargetedEvent, TextInput, type TextInputFocusEventData, type TextInputProps, type TextStyle} from 'react-native';
+import AutofillTextInput from '@mattermost/autofill-text-input';
 
 import {changeOpacity, getKeyboardAppearanceFromTheme, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
@@ -54,6 +55,7 @@ type FloatingTextInputProps = /*TextInputProps &*/ {
     theme: Theme;
     value?: string;
     rawInput?: boolean;
+    webDomain?: string;
     onChangeText?: TextInputProps['onChangeText'];
     defaultValue?: TextInputProps['defaultValue'];
     autoFocus?: TextInputProps['autoFocus'];
@@ -143,7 +145,7 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
             editable={editable}
             testID={testID || 'floating-text-input-label'}
         >
-            <TextInput
+            <AutofillTextInput
                 {...textInputProps}
                 editable={editable}
                 style={combinedTextInputStyle}

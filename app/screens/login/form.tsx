@@ -376,6 +376,7 @@ const LoginForm = ({
                 testID='login_form.username.input'
                 theme={theme}
                 value={loginId}
+                webDomain={serverUrl}
             />
             {showPasswordInput && (
                 <>
@@ -399,6 +400,7 @@ const LoginForm = ({
                         value={password}
                         endAdornment={endAdornment}
                         autoFocus={magicLinkEnabled}
+                        webDomain={serverUrl}
                     />
 
                     {(emailEnabled || usernameEnabled) && config.PasswordEnableForgotLink !== 'false' && (
