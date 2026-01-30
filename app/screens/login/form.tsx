@@ -361,7 +361,7 @@ const LoginForm = ({
             <FloatingTextInput
                 rawInput={true}
                 blurOnSubmit={false}
-                autoComplete='email'
+                autoComplete='username'
                 textContentType='username'
                 disableFullscreenUI={true}
                 enablesReturnKeyAutomatically={true}
