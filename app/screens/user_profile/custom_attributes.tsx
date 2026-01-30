@@ -1,9 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
+import React, {useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
-import {View, StyleSheet, type ListRenderItem} from 'react-native';
+import {View, StyleSheet, type ListRenderItem, type LayoutChangeEvent} from 'react-native';
 import {FlatList} from 'react-native-gesture-handler';
 
 import UserProfileLabel from './label';
@@ -28,6 +28,23 @@ const renderAttribute: ListRenderItem<CustomAttribute> = ({item}) => (
 
 const CustomAttributes = ({nickname, position, localTime, customAttributes}: Props) => {
     const {formatMessage} = useIntl();
+    const [scrollEnabled, setScrollEnabled] = useState(false);
+    const contentHeight = useRef(0);
+    const layoutHeight = useRef(0);
+
+    const updateScrollEnabled = () => {
+        setScrollEnabled(contentHeight.current > layoutHeight.current);
+    };
+
+    const handleContentSizeChange = (w: number, h: number) => {
+        contentHeight.current = h;
+        updateScrollEnabled();
+    };
+
+    const handleLayout = (e: LayoutChangeEvent) => {
+        layoutHeight.current = e.nativeEvent.layout.height;
+        updateScrollEnabled();
+    };
 
     // Combine standard and custom attributes
     const mergeAttributes: CustomAttribute[] = [];
@@ -64,9 +81,11 @@ const CustomAttributes = ({nickname, position, localTime, customAttributes}: Pro
             <FlatList
                 data={attributes}
                 renderItem={renderAttribute}
-                showsVerticalScrollIndicator={true}
-                scrollEnabled={true}
+                showsVerticalScrollIndicator={scrollEnabled}
+                scrollEnabled={scrollEnabled}
                 removeClippedSubviews={true}
+                onContentSizeChange={handleContentSizeChange}
+                onLayout={handleLayout}
             />
         </View>
     );
