@@ -5,20 +5,17 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {Alert, TouchableOpacity} from 'react-native';
 
-import {setExtraSessionProps} from '@actions/remote/entry/common';
 import SettingContainer from '@components/settings/container';
 import SettingOption from '@components/settings/option';
 import SettingSeparator from '@components/settings/separator';
 import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
-import DatabaseManager from '@database/manager';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
 import {usePreventDoubleTap} from '@hooks/utils';
 import PushNotifications from '@init/push_notifications';
 import {goToScreen, popTopScreen} from '@screens/navigation';
 import {gotoSettingsScreen} from '@screens/settings/config';
 import {deleteFileCache, getAllFilesInCachesDirectory, getFormattedFileSize} from '@utils/file';
-import {logDebug} from '@utils/log';
 
 import type {AvailableScreens} from '@typings/screens/navigation';
 import type {FileInfo} from 'expo-file-system';
@@ -103,21 +100,7 @@ const AdvancedSettings = ({
                     {
                         text: formatMessage({id: 'settings.advanced.reregister', defaultMessage: 'Re-register'}),
                         onPress: async () => {
-                            // Step 1: Re-register with Firebase/APNS
                             await PushNotifications.registerIfNeeded();
-
-                            // Step 2: Send device token to all connected servers
-                            const serverUrls = Object.keys(DatabaseManager.serverDatabases);
-                            logDebug('[AdvancedSettings] Re-registering push notifications for servers:', serverUrls);
-
-                            // Wait a moment for the token to be generated
-                            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-                            // Send to all servers
-                            await Promise.all(
-                                serverUrls.map((url) => setExtraSessionProps(url)),
-                            );
-
                             Alert.alert(
                                 formatMessage({id: 'settings.advanced.reregister_notifications.success_title', defaultMessage: 'Success'}),
                                 formatMessage({id: 'settings.advanced.reregister_notifications.success_message', defaultMessage: 'Push notifications have been re-registered. You may need to restart the app for changes to take effect.'}),
@@ -128,7 +111,7 @@ const AdvancedSettings = ({
                 {cancelable: false},
             );
         } catch (e) {
-            logDebug('[AdvancedSettings] Error re-registering notifications:', e);
+            // do nothing
         }
     }, [intl]));
 
