@@ -3,13 +3,14 @@
 
 import MemberPanel from '@swipe_navigation/components/member_panel';
 import useSwipeGesture from '@swipe_navigation/components/swipe_container/use_swipe_gesture';
-import {CHANNEL_ANIMATION_DURATION, MEMBER_PANEL_WIDTH} from '@swipe_navigation/constants';
+import {CHANNEL_ANIMATION_DURATION, MEMBER_PANEL_WIDTH, SWIPE_THRESHOLD_PERCENT, SWIPE_VELOCITY_THRESHOLD} from '@swipe_navigation/constants';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {DeviceEventEmitter, Dimensions, StyleSheet, View} from 'react-native';
-import {GestureDetector} from 'react-native-gesture-handler';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
     runOnJS,
     useAnimatedStyle,
+    useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
 
@@ -21,6 +22,9 @@ import {setCurrentChannelId} from '@queries/servers/system';
 import Channel from '@screens/channel';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
+
+// Width of the right edge hit area for swipe-to-reopen gesture
+const EDGE_HIT_WIDTH = 30;
 
 const styles = StyleSheet.create({
     container: {
@@ -42,6 +46,13 @@ const styles = StyleSheet.create({
         bottom: 0,
         width: MEMBER_PANEL_WIDTH,
     },
+    edgeHitArea: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: EDGE_HIT_WIDTH,
+    },
 });
 
 type PhoneChannelViewProps = {
@@ -56,9 +67,20 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
     const [isClosing, setIsClosing] = useState(false);
     const isSwipingBack = useRef(false);
 
+    // Track the last closed channel ID for swipe-to-reopen
+    const lastClosedChannelIdRef = useRef<string | null>(null);
+
+    // Shared value for edge swipe gesture
+    const edgeSwipeProgress = useSharedValue(0);
+
     const handleSwipeBack = useCallback(() => {
         isSwipingBack.current = true;
         setIsClosing(true); // Immediately allow touches to pass through
+
+        // Store the channel ID before closing for potential reopen
+        if (displayedChannelId) {
+            lastClosedChannelIdRef.current = displayedChannelId;
+        }
 
         // Immediately hide the view - don't wait for database
         setDisplayedChannelId(null);
@@ -73,7 +95,50 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
                 // Silently handle errors
             }
         }, 0);
+    }, [serverUrl, displayedChannelId]);
+
+    // Function to reopen the last closed channel
+    const reopenLastChannel = useCallback(async () => {
+        const channelToReopen = lastClosedChannelIdRef.current;
+        if (!channelToReopen) {
+            return;
+        }
+
+        try {
+            const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+            await setCurrentChannelId(operator, channelToReopen);
+        } catch {
+            // Silently handle errors
+        }
     }, [serverUrl]);
+
+    // Gesture for swiping from right edge to reopen channel
+    const edgeSwipeGesture = Gesture.Pan().
+        activeOffsetX(-10). // Only activate on leftward swipes
+        failOffsetY([-30, 30]). // Fail if vertical movement
+        onUpdate((event) => {
+            'worklet';
+
+            // Track the swipe progress (negative translationX = swiping left)
+            if (event.translationX < 0) {
+                edgeSwipeProgress.value = Math.abs(event.translationX);
+            }
+        }).
+        onEnd((event) => {
+            'worklet';
+            const threshold = SCREEN_WIDTH * SWIPE_THRESHOLD_PERCENT;
+
+            // Check if swipe was significant enough
+            if (Math.abs(event.translationX) > threshold || Math.abs(event.velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                if (event.translationX < 0) {
+                    // Swiping left - reopen channel
+                    runOnJS(reopenLastChannel)();
+                }
+            }
+
+            // Reset progress
+            edgeSwipeProgress.value = 0;
+        });
 
     const {
         translateX,
@@ -138,9 +203,21 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
         transform: [{translateX: translateX.value}],
     }));
 
-    // Don't render if no channel to display
+    // When no channel is displayed, show edge hit area for swipe-to-reopen
     if (!displayedChannelId) {
-        return null;
+        // Only show edge hit area if there's a channel to reopen
+        if (!lastClosedChannelIdRef.current) {
+            return null;
+        }
+
+        return (
+            <GestureDetector gesture={edgeSwipeGesture}>
+                <View
+                    style={styles.edgeHitArea}
+                    pointerEvents='box-only'
+                />
+            </GestureDetector>
+        );
     }
 
     return (

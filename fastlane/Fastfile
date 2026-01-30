@@ -595,15 +595,23 @@ platform :ios do
 
     # Sync the provisioning profiles using match
     if ENV['SYNC_PROVISIONING_PROFILES'] == 'true'
-      if !ENV['MATCH_PASSWORD'].nil? && !ENV['MATCH_PASSWORD'].empty?
-        match(type: ENV['MATCH_TYPE'] || 'adhoc')
-      end
-      if !ENV['IOS_API_KEY_ID'].nil? && !ENV['IOS_API_KEY_ID'].empty?
+      # Prefer API key JSON file, then API key env vars, then password-based auth
+      if !ENV['APP_STORE_CONNECT_API_KEY_PATH'].nil? && !ENV['APP_STORE_CONNECT_API_KEY_PATH'].empty? &&
+         File.exist?(ENV['APP_STORE_CONNECT_API_KEY_PATH'])
+        match(
+            api_key_path: ENV['APP_STORE_CONNECT_API_KEY_PATH'],
+            type: ENV['MATCH_TYPE'] || 'adhoc'
+        )
+      elsif !ENV['IOS_API_KEY_ID'].nil? && !ENV['IOS_API_KEY_ID'].empty? &&
+         !ENV['IOS_API_ISSUER_ID'].nil? && !ENV['IOS_API_ISSUER_ID'].empty? &&
+         !ENV['IOS_API_KEY'].nil? && !ENV['IOS_API_KEY'].empty?
         api_key = get_apple_api_key()
         match(
             api_key: api_key,
             type: ENV['MATCH_TYPE'] || 'adhoc'
         )
+      elsif !ENV['MATCH_PASSWORD'].nil? && !ENV['MATCH_PASSWORD'].empty?
+        match(type: ENV['MATCH_TYPE'] || 'adhoc')
       end
     end
   end

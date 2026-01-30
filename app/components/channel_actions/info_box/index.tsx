@@ -38,6 +38,7 @@ const InfoBox = ({channelId, containerStyle, showAsLabel = false, testID}: Props
                     testID: 'close.channel_info.button',
                 }],
             },
+            modal: {swipeToDismiss: true},
         };
         showModal(Screens.CHANNEL_INFO, title, {channelId, closeButtonId}, options);
     }, [intl, channelId, theme]);

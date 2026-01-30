@@ -173,6 +173,7 @@ const ChannelHeader = ({
                     testID: 'close.channel_info.button',
                 }],
             },
+            modal: {swipeToDismiss: true},
         };
         showModal(Screens.CHANNEL_INFO, title, {channelId, closeButtonId}, options);
     }), [channelId, channelType, intl, theme]));

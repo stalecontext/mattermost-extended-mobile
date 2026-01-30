@@ -89,6 +89,15 @@ const Channel = ({
     const safeAreaViewEdges: Edge[] = useMemo(() => {
         // Use isTabletView prop if provided, otherwise use detected isTablet
         const useTabletLayout = isTabletView ?? isTablet;
+
+        // On phones with swipe navigation (onSwipeBack provided), always include bottom edge
+        // for proper home indicator padding
+        if (onSwipeBack) {
+            if (isEmojiSearchFocused) {
+                return ['left', 'right'];
+            }
+            return ['left', 'right', 'bottom'];
+        }
         if (useTabletLayout) {
             return ['left', 'right'];
         }
@@ -96,7 +105,7 @@ const Channel = ({
             return ['left', 'right'];
         }
         return ['left', 'right', 'bottom'];
-    }, [isTablet, isTabletView, isEmojiSearchFocused]);
+    }, [isTablet, isTabletView, isEmojiSearchFocused, onSwipeBack]);
 
     const handleBack = useCallback(() => {
         if (onSwipeBack) {

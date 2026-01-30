@@ -145,9 +145,63 @@ npm run e2e:android           # cd detox && npm run e2e:android-build && npm run
 npm run build:ios             # ./scripts/build.sh ipa
 npm run build:android         # ./scripts/build.sh apk
 
+# TestFlight deployment (see TestFlight Deployment section below)
+./scripts/deploy-testflight.sh              # Full build and deploy
+./scripts/deploy-testflight.sh --skip-setup # Skip npm reinstall (faster)
+
 # Utilities
 npm run clean                 # Clean build artifacts
 ```
+
+## TestFlight Deployment
+
+### Quick Deploy
+
+```bash
+# Full build and deploy to TestFlight (opens App Store Connect when done)
+./scripts/deploy-testflight.sh
+
+# Skip npm clean/install for faster builds (use after initial setup)
+./scripts/deploy-testflight.sh --skip-setup
+
+# Build only (no deploy)
+./scripts/deploy-testflight.sh --build-only
+
+# Deploy existing IPA
+./scripts/deploy-testflight.sh --deploy-only --ipa ./Mattermost+.ipa
+```
+
+### First-Time Setup
+
+1. **Copy template files:**
+   ```bash
+   cp fastlane/.env.ios.testflight.example fastlane/.env.ios.testflight
+   cp fastlane/api_key.json.example fastlane/api_key.json
+   ```
+
+2. **Configure `.env.ios.testflight`:**
+   - Set your bundle identifiers (`MAIN_APP_IDENTIFIER`, etc.)
+   - Set your Team ID (`TEAM_ID`)
+   - Set your Match repository URL (`MATCH_GIT_URL`) and password (`MATCH_PASSWORD`)
+   - Set your App Store Connect API key details (`IOS_API_KEY_ID`, `IOS_API_ISSUER_ID`)
+
+3. **Configure `api_key.json`:**
+   - Get an API key from [App Store Connect](https://appstoreconnect.apple.com/access/api)
+   - Fill in `key_id`, `issuer_id`, and the private key content
+
+4. **Set up Fastlane Match** (code signing):
+   - Create a private git repository for certificates
+   - Run `cd fastlane && bundle exec fastlane match init` if starting fresh
+   - The deploy script will sync certificates automatically
+
+### Security Notes
+
+These files contain sensitive data and are gitignored:
+- `fastlane/.env.ios.testflight` - Contains Match password, Team ID
+- `fastlane/api_key.json` - Contains App Store Connect private key
+- `*.p8` files - App Store Connect API key files
+
+Never commit these files. Use the `.example` templates as reference.
 
 ## Architecture
 

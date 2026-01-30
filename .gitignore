@@ -134,3 +134,13 @@ node_modules/@mattermost/intune
 # Claude Code
 .claude/settings.local.json
 .gemini/settings.json
+fastlane/api_key.json
+
+# TestFlight / App Store Connect
+*.p8
+TESTFLIGHT_SETUP.md
+fastlane/.env.*
+!fastlane/.env.*.example
+
+# Ruby vendor
+vendor/

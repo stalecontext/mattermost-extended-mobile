@@ -5,7 +5,8 @@ import {fetchChannelMembersFromPlugin} from '@member_list/actions/remote';
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {useIntl} from 'react-intl';
-import {SectionList, StyleSheet, Text, View} from 'react-native';
+import {Platform, SectionList, StyleSheet, Text, View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import Emoji from '@components/emoji';
 import Loading from '@components/loading';
@@ -107,6 +108,7 @@ const MemberPanel = ({
     const intl = useIntl();
     const theme = useTheme();
     const serverUrl = useServerUrl();
+    const insets = useSafeAreaInsets();
     const styles = getStyleSheet(theme);
 
     const [members, setMembers] = useState<MemberWithStatus[]>([]);
@@ -291,9 +293,12 @@ const MemberPanel = ({
 
     const keyExtractor = useCallback((item: MemberWithStatus) => item.id, []);
 
+    // Add top safe area padding on iOS for status bar
+    const headerStyle = Platform.OS === 'ios' ? [styles.header, {paddingTop: 12 + insets.top}] : styles.header;
+
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            <View style={headerStyle}>
                 <Text style={styles.headerText}>
                     {intl.formatMessage(
                         {id: 'swipe_navigation.member_panel.title', defaultMessage: 'Members ({count})'},

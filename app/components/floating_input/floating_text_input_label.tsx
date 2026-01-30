@@ -66,6 +66,7 @@ type FloatingTextInputProps = /*TextInputProps &*/ {
     autoComplete?: TextInputProps['autoComplete'];
     disableFullscreenUI?: TextInputProps['disableFullscreenUI'];
     maxLength?: TextInputProps['maxLength'];
+    textContentType?: TextInputProps['textContentType'];
 }
 
 const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProps>(({
