@@ -60,6 +60,7 @@ type ChannelProps = {
     playbooksActiveRuns: number;
     isPlaybooksEnabled: boolean;
     activeRunId?: string;
+    onBackPress?: () => void;
 
     // searchTerm: string;
 };
@@ -113,6 +114,7 @@ const ChannelHeader = ({
     hasPlaybookRuns,
     isPlaybooksEnabled,
     activeRunId,
+    onBackPress: customBackPress,
 }: ChannelProps) => {
     const intl = useIntl();
     const isTablet = useIsTablet();
@@ -145,8 +147,12 @@ const ChannelHeader = ({
 
     const onBackPress = useCallback(() => {
         Keyboard.dismiss();
-        popTopScreen(componentId);
-    }, [componentId]);
+        if (customBackPress) {
+            customBackPress();
+        } else {
+            popTopScreen(componentId);
+        }
+    }, [componentId, customBackPress]);
 
     const onTitlePress = usePreventDoubleTap(useCallback((() => {
         let title;

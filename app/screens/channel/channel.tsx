@@ -163,6 +163,7 @@ const Channel = ({
                 isTabletView={isTabletView}
                 shouldRenderBookmarks={shouldRender}
                 shouldRenderChannelBanner={includeChannelBanner}
+                onBackPress={onSwipeBack ? handleBack : undefined}
             />
             {Platform.OS === 'ios' ? (
                 <KeyboardProvider>
