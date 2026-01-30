@@ -12,7 +12,6 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
 import {usePreventDoubleTap} from '@hooks/utils';
-import PushNotifications from '@init/push_notifications';
 import {goToScreen, popTopScreen} from '@screens/navigation';
 import {gotoSettingsScreen} from '@screens/settings/config';
 import {deleteFileCache, getAllFilesInCachesDirectory, getFormattedFileSize} from '@utils/file';
@@ -85,36 +84,6 @@ const AdvancedSettings = ({
         goToScreen(screen, title);
     }, [intl]);
 
-    const onPressReregisterNotifications = usePreventDoubleTap(useCallback(async () => {
-        try {
-            const {formatMessage} = intl;
-
-            Alert.alert(
-                formatMessage({id: 'settings.advanced.reregister_notifications', defaultMessage: 'Re-register Push Notifications'}),
-                formatMessage({
-                    id: 'settings.advanced.reregister_notifications.confirmation',
-                    defaultMessage: 'This will re-register your device for push notifications. Please confirm to proceed.',
-                }),
-                [
-                    {text: formatMessage({id: 'settings.advanced.cancel', defaultMessage: 'Cancel'}), style: 'cancel'},
-                    {
-                        text: formatMessage({id: 'settings.advanced.reregister', defaultMessage: 'Re-register'}),
-                        onPress: async () => {
-                            await PushNotifications.registerIfNeeded();
-                            Alert.alert(
-                                formatMessage({id: 'settings.advanced.reregister_notifications.success_title', defaultMessage: 'Success'}),
-                                formatMessage({id: 'settings.advanced.reregister_notifications.success_message', defaultMessage: 'Push notifications have been re-registered. You may need to restart the app for changes to take effect.'}),
-                            );
-                        },
-                    },
-                ],
-                {cancelable: false},
-            );
-        } catch (e) {
-            // do nothing
-        }
-    }, [intl]));
-
     useEffect(() => {
         getAllCachedFiles();
     }, []);
@@ -154,19 +123,6 @@ const AdvancedSettings = ({
                     type='arrow'
                 />
                 <SettingSeparator/>
-            </React.Fragment>
-            <React.Fragment key='reregister_notifications'>
-                <TouchableOpacity
-                    onPress={onPressReregisterNotifications}
-                >
-                    <SettingOption
-                        icon='bell-ring-outline'
-                        label={intl.formatMessage({id: 'settings.advanced.reregister_notifications', defaultMessage: 'Re-register Push Notifications'})}
-                        testID='advanced_settings.reregister_notifications.option'
-                        type='none'
-                    />
-                    <SettingSeparator/>
-                </TouchableOpacity>
             </React.Fragment>
             {isDevMode && (
                 <React.Fragment key='component_library'>
