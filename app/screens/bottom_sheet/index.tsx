@@ -165,10 +165,9 @@ const BottomSheet = ({
             }
         });
 
-        if (index <= 0) {
-            close();
-        }
-    }, [close]);
+        // Don't call close() here - let the onClose callback handle dismissal
+        // to avoid double-dismissal when swiping down
+    }, []);
 
     useAndroidHardwareBackHandler(componentId, handleClose);
     useNavButtonPressed(closeButtonId || '', componentId, close, [close]);
@@ -271,6 +270,7 @@ const BottomSheet = ({
             onClose={close}
             bottomInset={insets.bottom}
             enableDynamicSizing={enableDynamicSizing}
+            enablePanDownToClose={true}
         >
             {content}
         </BottomSheetM>
