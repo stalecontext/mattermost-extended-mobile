@@ -146,7 +146,7 @@ npm run build:ios             # ./scripts/build.sh ipa
 npm run build:android         # ./scripts/build.sh apk
 
 # TestFlight deployment (see TestFlight Deployment section below)
-./scripts/deploy-testflight.sh              # Full build and deploy
+./scripts/deploy-testflight.sh              # Full build and deploy (auto-increments build number)
 ./scripts/deploy-testflight.sh --skip-setup # Skip npm reinstall (faster)
 
 # Utilities
@@ -158,7 +158,7 @@ npm run clean                 # Clean build artifacts
 ### Quick Deploy
 
 ```bash
-# Full build and deploy to TestFlight (opens App Store Connect when done)
+# Full build and deploy to TestFlight (auto-increments build number)
 ./scripts/deploy-testflight.sh
 
 # Skip npm clean/install for faster builds (use after initial setup)
@@ -169,7 +169,15 @@ npm run clean                 # Clean build artifacts
 
 # Deploy existing IPA
 ./scripts/deploy-testflight.sh --deploy-only --ipa ./Mattermost+.ipa
+
+# Set version number (e.g., for a new release)
+VERSION=2.38.0 ./scripts/deploy-testflight.sh
+
+# Skip build number auto-increment (use current build number)
+./scripts/deploy-testflight.sh --no-increment
 ```
+
+**Note:** The deploy script automatically increments the build number before each build. This ensures each TestFlight upload has a unique build number.
 
 ### First-Time Setup
 

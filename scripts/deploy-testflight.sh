@@ -36,13 +36,18 @@ print_usage() {
     echo "  --ipa <path>     Path to existing IPA file (for --deploy-only)"
     echo "  --skip-setup     Skip npm clean/install (use existing node_modules)"
     echo "  --no-open        Don't open App Store Connect in browser"
+    echo "  --no-increment   Skip build number increment (use current build number)"
     echo "  --help           Show this help message"
     echo ""
+    echo "Environment variables:"
+    echo "  VERSION          Set app version (e.g., VERSION=2.38.0 $0)"
+    echo ""
     echo "Examples:"
-    echo "  $0                          # Full build and deploy"
+    echo "  $0                          # Full build and deploy (auto-increments build number)"
     echo "  $0 --skip-setup             # Build and deploy without reinstalling deps"
     echo "  $0 --build-only             # Only build the IPA"
     echo "  $0 --deploy-only --ipa ./Mattermost+.ipa  # Deploy existing IPA"
+    echo "  VERSION=2.38.0 $0           # Set version and deploy"
 }
 
 # Check prerequisites
@@ -114,11 +119,31 @@ with open('$api_key_file') as f:
 
 # Build the IPA
 build_ipa() {
+    cd "$FASTLANE_DIR"
+
+    # Step 1: Update version/build numbers
+    if [[ "$NO_INCREMENT" != "true" ]] || [[ -n "$VERSION" ]]; then
+        echo ""
+        print_success "=== Updating Version/Build Numbers ==="
+        echo ""
+
+        # Set version number if VERSION env var is provided
+        if [[ -n "$VERSION" ]]; then
+            print_success "Setting app version to $VERSION"
+            VERSION_NUMBER="$VERSION" bundle exec fastlane ios set_app_version --env ios.testflight
+        fi
+
+        # Auto-increment build number unless --no-increment is specified
+        if [[ "$NO_INCREMENT" != "true" ]]; then
+            print_success "Incrementing build number..."
+            INCREMENT_BUILD_NUMBER=true bundle exec fastlane ios set_app_build_number --env ios.testflight
+        fi
+    fi
+
+    # Step 2: Build the IPA
     echo ""
     print_success "=== Building iOS App for TestFlight ==="
     echo ""
-
-    cd "$FASTLANE_DIR"
 
     local build_cmd="bundle exec fastlane ios build --env ios.testflight"
 
@@ -181,6 +206,7 @@ BUILD_ONLY=false
 DEPLOY_ONLY=false
 SKIP_SETUP=false
 NO_OPEN=false
+NO_INCREMENT=false
 IPA_PATH=""
 
 while [[ $# -gt 0 ]]; do
@@ -203,6 +229,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-open)
             NO_OPEN=true
+            shift
+            ;;
+        --no-increment)
+            NO_INCREMENT=true
             shift
             ;;
         --help)
