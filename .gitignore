@@ -53,6 +53,7 @@ local.properties
 android/app/bin
 android/app/build
 android/build
+android/app/google-services.json
 .settings
 .project
 .classpath
@@ -144,3 +145,4 @@ fastlane/.env.*
 
 # Ruby vendor
 vendor/
+fastlane/env.ios.testflight
