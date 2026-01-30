@@ -121,6 +121,9 @@ with open('$api_key_file') as f:
 build_ipa() {
     cd "$FASTLANE_DIR"
 
+    # Load API key for code signing
+    load_api_key
+
     # Step 1: Update version/build numbers
     if [[ "$NO_INCREMENT" != "true" ]] || [[ -n "$VERSION" ]]; then
         echo ""
@@ -130,13 +133,13 @@ build_ipa() {
         # Set version number if VERSION env var is provided
         if [[ -n "$VERSION" ]]; then
             print_success "Setting app version to $VERSION"
-            VERSION_NUMBER="$VERSION" bundle exec fastlane ios set_app_version --env ios.testflight
+            VERSION_NUMBER="$VERSION" bundle exec fastlane set_app_version --env ios.testflight
         fi
 
         # Auto-increment build number unless --no-increment is specified
         if [[ "$NO_INCREMENT" != "true" ]]; then
             print_success "Incrementing build number..."
-            INCREMENT_BUILD_NUMBER=true bundle exec fastlane ios set_app_build_number --env ios.testflight
+            INCREMENT_BUILD_NUMBER=true bundle exec fastlane set_app_build_number --env ios.testflight
         fi
     fi
 
