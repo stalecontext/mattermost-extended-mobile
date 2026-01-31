@@ -61,7 +61,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
 
 type Props = {
     userId: string;
-    lastActivityAt?: number;
 };
 
 function getDisplayName(lastChannel: UserLastChannelResponse): string {
@@ -76,7 +75,7 @@ function getDisplayName(lastChannel: UserLastChannelResponse): string {
     return other_username || display_name;
 }
 
-function UserLastSeen({userId, lastActivityAt}: Props) {
+function UserLastSeen({userId}: Props) {
     const serverUrl = useServerUrl();
     const theme = useTheme();
     const intl = useIntl();
@@ -84,33 +83,22 @@ function UserLastSeen({userId, lastActivityAt}: Props) {
 
     const permissions = useReadReceiptsPermissions(serverUrl);
     const [lastChannel, setLastChannel] = useState<UserLastChannelResponse | null>(null);
-    const [hasPermissionError, setHasPermissionError] = useState(false);
 
-    // Fetch channel reading info only if user has permissions
+    // Fetch every time the component mounts
     useEffect(() => {
-        if (!permissions.can_view_receipts || !permissions.enable_last_seen || !userId) {
+        if (!permissions.enable_last_seen || !userId) {
             return;
         }
 
         const fetchLastSeen = async () => {
             const result = await fetchUserLastChannel(serverUrl, userId);
-            if (result.error) {
-                // Check if it's a 403 permission error
-                const statusCode = (result.error as any)?.status_code || (result.error as any)?.statusCode;
-                if (statusCode === 403) {
-                    setHasPermissionError(true);
-                    setLastChannel(null);
-                    return;
-                }
-            }
             if (result.lastChannel) {
                 setLastChannel(result.lastChannel);
-                setHasPermissionError(false);
             }
         };
 
         fetchLastSeen();
-    }, [permissions.can_view_receipts, permissions.enable_last_seen, serverUrl, userId]);
+    }, [permissions.enable_last_seen, serverUrl, userId]);
 
     const handleChannelPress = useCallback(() => {
         if (lastChannel?.channel_id) {
@@ -118,17 +106,18 @@ function UserLastSeen({userId, lastActivityAt}: Props) {
         }
     }, [serverUrl, lastChannel?.channel_id]);
 
-    // Don't show anything if feature is disabled or no timestamp available
-    if (!permissions.enable_last_seen || !lastActivityAt) {
+    if (!permissions.enable_last_seen || !lastChannel || !lastChannel.channel_id) {
         return null;
     }
 
-    // Check if we have channel reading data to show
-    const hasChannelData = permissions.can_view_receipts && !hasPermissionError && lastChannel?.channel_id;
+    const friendlyDate = getFriendlyDate(intl, lastChannel.last_viewed_at);
+    const timeStamp = (
+        <Text style={styles.text}>
+            {' ' + friendlyDate.toLowerCase()}
+        </Text>
+    );
 
-    // If we don't have channel data, show basic "Last Seen" with last_activity_at
-    if (!hasChannelData) {
-        const activityDate = getFriendlyDate(intl, lastActivityAt);
+    if (!permissions.can_view_receipts) {
         return (
             <View style={styles.container}>
                 <FormattedText
@@ -139,20 +128,12 @@ function UserLastSeen({userId, lastActivityAt}: Props) {
                 />
                 <View style={styles.row}>
                     <Text style={styles.text}>
-                        {activityDate}
+                        {friendlyDate}
                     </Text>
                 </View>
             </View>
         );
     }
-
-    // If we have channel data, show detailed view with channel reading info
-    const channelDate = getFriendlyDate(intl, lastChannel.last_viewed_at);
-    const timeStamp = (
-        <Text style={styles.text}>
-            {' ' + channelDate.toLowerCase()}
-        </Text>
-    );
 
     const isDm = lastChannel.channel_type === 'D';
     const isGroup = lastChannel.channel_type === 'G';

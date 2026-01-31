@@ -65,7 +65,7 @@ const UserInfo = ({
     return (
         <>
             {showCustomStatus && <UserProfileCustomStatus customStatus={customStatus!}/>}
-            <UserLastSeen userId={user.id} lastActivityAt={user.last_activity_at}/>
+            <UserLastSeen userId={user.id}/>
             <CustomAttributes
                 nickname={showNickname ? user.nickname : undefined}
                 position={showPosition ? user.position : undefined}
