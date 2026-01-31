@@ -1,3 +1,19 @@
+diff --git a/node_modules/@mattermost/commonmark/dist/commonmark.js b/node_modules/@mattermost/commonmark/dist/commonmark.js
+index 376b127..8f7d126 100644
+--- a/node_modules/@mattermost/commonmark/dist/commonmark.js
++++ b/node_modules/@mattermost/commonmark/dist/commonmark.js
+@@ -13678,6 +13678,11 @@
+         "broken_heart"
+     ];
+     var parseEmoticon = function(block) {
++        // Check if emoticons should be rendered as emojis (default true for backward compatibility)
++        if (this.options.enableEmoticons === false) {
++            return false;
++        }
++
+         var m;
+         if ((m = this.tryMatch(reEmoticon))) {
+             // Only allow emoticons after whitespace or a delimiter
 diff --git a/node_modules/@mattermost/commonmark/lib/index.d.ts b/node_modules/@mattermost/commonmark/lib/index.d.ts
 index cc4058d..20085df 100644
 --- a/node_modules/@mattermost/commonmark/lib/index.d.ts
