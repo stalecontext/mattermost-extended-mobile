@@ -132,6 +132,21 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
         enabled: isVisible && !isClosing,
     });
 
+    // Callback to clear database after animation completes
+    const clearDatabaseChannel = useCallback(() => {
+        setTimeout(async () => {
+            try {
+                const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                await setCurrentChannelId(operator, '');
+            } catch {
+                // Silently handle errors
+            } finally {
+                // Only reset the flag after database update completes
+                isSwipingBack.current = false;
+            }
+        }, 0);
+    }, [serverUrl]);
+
     // Populate the animation ref with the close animation logic
     useEffect(() => {
         animateOutRef.current = () => {
@@ -149,25 +164,11 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
                     runOnJS(setDisplayedChannelId)(null);
                     runOnJS(setIsVisible)(false);
                     runOnJS(setIsClosing)(false);
-
-                    // Clear current channel in database and reset swipe flag
-                    runOnJS(() => {
-                        setTimeout(async () => {
-                            try {
-                                const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
-                                await setCurrentChannelId(operator, '');
-                            } catch {
-                                // Silently handle errors
-                            } finally {
-                                // Only reset the flag after database update completes
-                                isSwipingBack.current = false;
-                            }
-                        }, 0);
-                    })();
+                    runOnJS(clearDatabaseChannel)();
                 }
             });
         };
-    }, [serverUrl, displayedChannelId, translateX]);
+    }, [displayedChannelId, translateX, clearDatabaseChannel]);
 
     // Handle channel changes
     useEffect(() => {
