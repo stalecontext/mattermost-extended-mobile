@@ -110,27 +110,32 @@ function ChannelFollowersIndicator({channelId, channelType, location = Screens.C
         }
     }, [channelId, location, isTablet, intl, theme]);
 
-    if (!shouldShow || !followers?.readers?.length) {
-        return null;
-    }
+    // Always render container to reserve space and prevent typing indicator overlap
+    // Only show content when there are followers
+    const hasFollowers = shouldShow && followers?.readers?.length;
 
     return (
         <TouchableOpacity
-            onPress={handlePress}
-            style={styles.container}
+            onPress={hasFollowers ? handlePress : undefined}
+            style={[styles.container, !hasFollowers && {opacity: 0, pointerEvents: 'none'}]}
             testID='channel_followers_indicator'
+            disabled={!hasFollowers}
         >
-            <CompassIcon
-                color={changeOpacity(theme.centerChannelColor, 0.64)}
-                name='eye-outline'
-                size={16}
-            />
-            <Text
-                style={styles.text}
-                testID='channel_followers_indicator.text'
-            >
-                {intl.formatMessage(messages.followersCount, {count: followers.readers.length})}
-            </Text>
+            {hasFollowers && (
+                <>
+                    <CompassIcon
+                        color={changeOpacity(theme.centerChannelColor, 0.64)}
+                        name='eye-outline'
+                        size={16}
+                    />
+                    <Text
+                        style={styles.text}
+                        testID='channel_followers_indicator.text'
+                    >
+                        {intl.formatMessage(messages.followersCount, {count: followers.readers.length})}
+                    </Text>
+                </>
+            )}
         </TouchableOpacity>
     );
 }
