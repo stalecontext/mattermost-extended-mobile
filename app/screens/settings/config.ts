@@ -90,6 +90,10 @@ const messages = defineMessages({
         defaultMessage: 'Collapsed Reply Threads',
         id: 'mobile.display_settings.crt',
     },
+    emoticons: {
+        defaultMessage: 'Render emoticons as emojis',
+        id: 'mobile.display_settings.emoticons',
+    },
     theme: {
         defaultMessage: 'Theme',
         id: 'mobile.display_settings.theme',
@@ -185,6 +189,12 @@ export const DisplayOptionConfig: Record<string, SettingConfigDetails> = {
         i18nId: messages.crt.id,
         icon: 'message-text-outline',
         testID: messages.crt.id,
+    },
+    emoticons: {
+        defaultMessage: messages.emoticons.defaultMessage,
+        i18nId: messages.emoticons.id,
+        icon: 'emoticon-happy-outline',
+        testID: messages.emoticons.id,
     },
     theme: {
         defaultMessage: messages.theme.defaultMessage,

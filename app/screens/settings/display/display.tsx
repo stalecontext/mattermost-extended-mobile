@@ -17,13 +17,13 @@ import {getUserTimezoneProps} from '@utils/user';
 import type UserModel from '@typings/database/models/servers/user';
 import type {AvailableScreens} from '@typings/screens/navigation';
 
-const CRT_FORMAT = [
+const ON_OFF_FORMAT = [
     defineMessage({
-        id: 'display_settings.crt.on',
+        id: 'display_settings.on',
         defaultMessage: 'On',
     }),
     defineMessage({
-        id: 'display_settings.crt.off',
+        id: 'display_settings.off',
         defaultMessage: 'Off',
     }),
 ];
@@ -57,9 +57,10 @@ type DisplayProps = {
     isCRTEnabled: boolean;
     isCRTSwitchEnabled: boolean;
     isThemeSwitchingEnabled: boolean;
+    renderEmoticonsAsEmoji: boolean;
 }
 
-const Display = ({componentId, currentUser, hasMilitaryTimeFormat, isCRTEnabled, isCRTSwitchEnabled, isThemeSwitchingEnabled}: DisplayProps) => {
+const Display = ({componentId, currentUser, hasMilitaryTimeFormat, isCRTEnabled, isCRTSwitchEnabled, isThemeSwitchingEnabled, renderEmoticonsAsEmoji}: DisplayProps) => {
     const intl = useIntl();
     const theme = useTheme();
     const timezone = useMemo(() => getUserTimezoneProps(currentUser), [currentUser?.timezone]);
@@ -85,6 +86,12 @@ const Display = ({componentId, currentUser, hasMilitaryTimeFormat, isCRTEnabled,
     const goToCRTSettings = usePreventDoubleTap(useCallback(() => {
         const screen = Screens.SETTINGS_DISPLAY_CRT;
         const title = intl.formatMessage({id: 'display_settings.crt', defaultMessage: 'Collapsed Reply Threads'});
+        gotoSettingsScreen(screen, title);
+    }, [intl]));
+
+    const goToEmoticonsSettings = usePreventDoubleTap(useCallback(() => {
+        const screen = Screens.SETTINGS_DISPLAY_EMOTICONS;
+        const title = intl.formatMessage({id: 'display_settings.emoticons', defaultMessage: 'Render emoticons as emojis'});
         gotoSettingsScreen(screen, title);
     }, [intl]));
 
@@ -120,10 +127,16 @@ const Display = ({componentId, currentUser, hasMilitaryTimeFormat, isCRTEnabled,
                 <SettingItem
                     optionName='crt'
                     onPress={goToCRTSettings}
-                    info={intl.formatMessage(isCRTEnabled ? CRT_FORMAT[0] : CRT_FORMAT[1])}
+                    info={intl.formatMessage(isCRTEnabled ? ON_OFF_FORMAT[0] : ON_OFF_FORMAT[1])}
                     testID='display_settings.crt.option'
                 />
             )}
+            <SettingItem
+                optionName='emoticons'
+                onPress={goToEmoticonsSettings}
+                info={intl.formatMessage(renderEmoticonsAsEmoji ? ON_OFF_FORMAT[0] : ON_OFF_FORMAT[1])}
+                testID='display_settings.emoticons.option'
+            />
         </SettingContainer>
     );
 };

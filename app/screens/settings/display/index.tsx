@@ -26,16 +26,22 @@ const enhanced = withObservables([], ({database}: WithDatabaseArgs) => {
         }),
     );
 
+    const displayPreferences = queryDisplayNamePreferences(database).observeWithColumns(['value']);
+
     return {
         isThemeSwitchingEnabled,
         isCRTEnabled: observeIsCRTEnabled(database),
         isCRTSwitchEnabled: observeCRTUserPreferenceDisplay(database),
-        hasMilitaryTimeFormat: queryDisplayNamePreferences(database).
-            observeWithColumns(['value']).pipe(
-                switchMap(
-                    (preferences) => of$(getDisplayNamePreferenceAsBool(preferences, Preferences.USE_MILITARY_TIME)),
-                ),
+        hasMilitaryTimeFormat: displayPreferences.pipe(
+            switchMap(
+                (preferences) => of$(getDisplayNamePreferenceAsBool(preferences, Preferences.USE_MILITARY_TIME)),
             ),
+        ),
+        renderEmoticonsAsEmoji: displayPreferences.pipe(
+            switchMap(
+                (preferences) => of$(getDisplayNamePreferenceAsBool(preferences, Preferences.RENDER_EMOTICONS_AS_EMOJI, true)),
+            ),
+        ),
         currentUser: observeCurrentUser(database),
     };
 });

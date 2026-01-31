@@ -236,6 +236,9 @@ Navigation.setLazyComponentRegistrator((screenName) => {
         case Screens.SETTINGS_DISPLAY_CRT:
             screen = withServerDatabase(require('@screens/settings/display_crt').default);
             break;
+        case Screens.SETTINGS_DISPLAY_EMOTICONS:
+            screen = withServerDatabase(require('@screens/settings/display_emoticons').default);
+            break;
         case Screens.SETTINGS_DISPLAY_THEME:
             screen = withServerDatabase(require('@screens/settings/display_theme').default);
             break;

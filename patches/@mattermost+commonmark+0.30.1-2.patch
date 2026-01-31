@@ -1,8 +1,8 @@
-diff --git a/node_modules/commonmark/lib/index.d.ts b/node_modules/commonmark/lib/index.d.ts
-index 1234567..abcdefg 100644
---- a/node_modules/commonmark/lib/index.d.ts
-+++ b/node_modules/commonmark/lib/index.d.ts
-@@ -235,4 +235,8 @@ export interface ParserOptions {
+diff --git a/node_modules/@mattermost/commonmark/lib/index.d.ts b/node_modules/@mattermost/commonmark/lib/index.d.ts
+index cc4058d..20085df 100644
+--- a/node_modules/@mattermost/commonmark/lib/index.d.ts
++++ b/node_modules/@mattermost/commonmark/lib/index.d.ts
+@@ -235,6 +235,10 @@ export interface ParserOptions {
       * The minimum number of characters in a valid hashtag. If not provided, defaults to 3.
       */
      minimumHashtagLength?: number;
@@ -11,14 +11,16 @@ index 1234567..abcdefg 100644
 +     */
 +    enableEmoticons?: boolean;
  }
-diff --git a/node_modules/commonmark/lib/inlines.js b/node_modules/commonmark/lib/inlines.js
-index 1234567..abcdefg 100644
---- a/node_modules/commonmark/lib/inlines.js
-+++ b/node_modules/commonmark/lib/inlines.js
-@@ -1067,6 +1067,11 @@ var EMOTICONS = [
+ 
+ export interface HtmlRenderingOptions extends XmlRenderingOptions {
+diff --git a/node_modules/@mattermost/commonmark/lib/inlines.js b/node_modules/@mattermost/commonmark/lib/inlines.js
+index fdf7a7e..315ec56 100644
+--- a/node_modules/@mattermost/commonmark/lib/inlines.js
++++ b/node_modules/@mattermost/commonmark/lib/inlines.js
+@@ -1045,6 +1045,11 @@ var EMOTICONS = [
      "broken_heart"
  ];
- var parseEmoticon = function (block) {
+ var parseEmoticon = function(block) {
 +    // Check if emoticons should be rendered as emojis (default true for backward compatibility)
 +    if (this.options.enableEmoticons === false) {
 +        return false;
