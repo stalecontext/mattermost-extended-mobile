@@ -20,7 +20,6 @@
     "@formatjs/intl-relativetimeformat": "11.4.11",
     "@gorhom/bottom-sheet": "5.1.2",
     "@gorhom/portal": "1.0.14",
-    "@mattermost/autofill-text-input": "file:./libraries/@mattermost/autofill-text-input",
     "@mattermost/calls": "github:mattermost/calls-common#ab53c24053b89e4d3d853bbe1244892899517f45",
     "@mattermost/compass-icons": "0.1.48",
     "@mattermost/hardware-keyboard": "file:./libraries/@mattermost/hardware-keyboard",
