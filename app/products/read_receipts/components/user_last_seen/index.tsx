@@ -12,6 +12,8 @@ import FormattedText from '@components/formatted_text';
 import {getFriendlyDate} from '@components/friendly_date';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
+import NetworkManager from '@managers/network_manager';
+import {logDebug} from '@utils/log';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
@@ -82,23 +84,49 @@ function UserLastSeen({userId}: Props) {
     const styles = getStyleSheet(theme);
 
     const permissions = useReadReceiptsPermissions(serverUrl);
+
+    // last_activity_at from standard user status API (available to all users)
+    const [lastActivityAt, setLastActivityAt] = useState<number | null>(null);
+
+    // Channel info from plugin (only for users with read receipts permissions)
     const [lastChannel, setLastChannel] = useState<UserLastChannelResponse | null>(null);
 
-    // Fetch every time the component mounts
+    // Fetch user status for last_activity_at (always, for all users)
     useEffect(() => {
-        if (!permissions.enable_last_seen || !userId) {
+        if (!userId) {
             return;
         }
 
-        const fetchLastSeen = async () => {
+        const fetchUserStatus = async () => {
+            try {
+                const client = NetworkManager.getClient(serverUrl);
+                const status = await client.getStatus(userId);
+                if (status?.last_activity_at) {
+                    setLastActivityAt(status.last_activity_at);
+                }
+            } catch (error) {
+                logDebug('[UserLastSeen.fetchUserStatus]', error);
+            }
+        };
+
+        fetchUserStatus();
+    }, [serverUrl, userId]);
+
+    // Fetch channel info from plugin (only when plugin is enabled and user has permissions)
+    useEffect(() => {
+        if (!permissions.enable_last_seen || !permissions.can_view_receipts || !userId) {
+            return;
+        }
+
+        const fetchLastChannel = async () => {
             const result = await fetchUserLastChannel(serverUrl, userId);
             if (result.lastChannel) {
                 setLastChannel(result.lastChannel);
             }
         };
 
-        fetchLastSeen();
-    }, [permissions.enable_last_seen, serverUrl, userId]);
+        fetchLastChannel();
+    }, [permissions.enable_last_seen, permissions.can_view_receipts, serverUrl, userId]);
 
     const handleChannelPress = useCallback(() => {
         if (lastChannel?.channel_id) {
@@ -106,18 +134,20 @@ function UserLastSeen({userId}: Props) {
         }
     }, [serverUrl, lastChannel?.channel_id]);
 
-    if (!permissions.enable_last_seen || !lastChannel || !lastChannel.channel_id) {
+    // Show nothing if we don't have last_activity_at
+    if (!lastActivityAt) {
         return null;
     }
 
-    const friendlyDate = getFriendlyDate(intl, lastChannel.last_viewed_at);
-    const timeStamp = (
-        <Text style={styles.text}>
-            {' ' + friendlyDate.toLowerCase()}
-        </Text>
-    );
+    const friendlyDate = getFriendlyDate(intl, lastActivityAt);
 
-    if (!permissions.can_view_receipts) {
+    // Check if we have channel info to show (plugin enabled + can_view_receipts + valid channel)
+    const showChannelInfo = permissions.enable_last_seen &&
+        permissions.can_view_receipts &&
+        lastChannel?.channel_id;
+
+    if (!showChannelInfo) {
+        // Show just the timestamp (available to all users)
         return (
             <View style={styles.container}>
                 <FormattedText
@@ -135,6 +165,7 @@ function UserLastSeen({userId}: Props) {
         );
     }
 
+    // Show channel info with navigation (for users with read receipts permissions)
     const isDm = lastChannel.channel_type === 'D';
     const isGroup = lastChannel.channel_type === 'G';
 
@@ -151,6 +182,12 @@ function UserLastSeen({userId}: Props) {
         prefixText = intl.formatMessage(messages.reading) + ' ';
         linkText = `#${lastChannel.display_name}`;
     }
+
+    const timeStamp = (
+        <Text style={styles.text}>
+            {' ' + friendlyDate.toLowerCase()}
+        </Text>
+    );
 
     return (
         <View style={styles.container}>
