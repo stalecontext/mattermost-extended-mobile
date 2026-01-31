@@ -107,10 +107,9 @@ export default function useSwipeGesture({
             const {translationX} = event;
 
             if (isPanelOpen.value) {
-                // Panel is open - allow closing it (swipe right) or staying put
-                // translationX > 0 means swiping right (closing)
-                const newTranslate = Math.min(0, -MEMBER_PANEL_WIDTH + translationX);
-                translateX.value = newTranslate;
+                // Panel is open - allow closing it (swipe right) but prevent swiping further left.
+                const newTranslate = -MEMBER_PANEL_WIDTH + translationX;
+                translateX.value = Math.min(0, Math.max(-MEMBER_PANEL_WIDTH, newTranslate));
             } else if (translationX > 0) {
                 // Panel is closed, swiping right - going back
                 // Apply some resistance as user swipes
