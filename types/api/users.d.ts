@@ -58,7 +58,6 @@ type UserProfile = {
     create_at: number;
     update_at: number;
     delete_at: number;
-    last_activity_at?: number;
     username: string;
     auth_data?: string;
     auth_service: string;

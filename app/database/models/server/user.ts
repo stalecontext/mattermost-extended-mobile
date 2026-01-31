@@ -80,9 +80,6 @@ export default class UserModel extends Model implements UserModelInterface {
     /** delete_at : The timestamp at which this user account has been archived/deleted */
     @field('delete_at') deleteAt!: number;
 
-    /** last_activity_at : The timestamp of the last activity of the user */
-    @field('last_activity_at') lastActivityAt!: number;
-
     /** email : The email address for that user  */
     @field('email') email!: string;
 

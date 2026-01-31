@@ -28,7 +28,6 @@ export const transformUserRecord = ({action, database, value}: TransformerArgs<U
         user.authService = raw.auth_service;
         user.deleteAt = raw.delete_at;
         user.updateAt = raw.update_at;
-        user.lastActivityAt = raw?.last_activity_at ?? 0;
         user.email = raw.email;
         user.firstName = raw.first_name;
         user.isGuest = raw.roles.includes('system_guest');
