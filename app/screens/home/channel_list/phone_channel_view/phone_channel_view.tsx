@@ -73,29 +73,13 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
     // Shared value for edge swipe gesture
     const edgeSwipeProgress = useSharedValue(0);
 
+    // Ref to hold the animation function for closing
+    const animateOutRef = useRef<(() => void) | null>(null);
+
     const handleSwipeBack = useCallback(() => {
         isSwipingBack.current = true;
-        setIsClosing(true); // Immediately allow touches to pass through
-
-        // Store the channel ID before closing for potential reopen
-        if (displayedChannelId) {
-            lastClosedChannelIdRef.current = displayedChannelId;
-        }
-
-        // Immediately hide the view - don't wait for database
-        setDisplayedChannelId(null);
-        setIsVisible(false);
-
-        // Clear current channel in background
-        setTimeout(async () => {
-            try {
-                const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
-                await setCurrentChannelId(operator, '');
-            } catch {
-                // Silently handle errors
-            }
-        }, 0);
-    }, [serverUrl, displayedChannelId]);
+        animateOutRef.current?.();
+    }, []);
 
     // Function to reopen the last closed channel
     const reopenLastChannel = useCallback(async () => {
@@ -148,11 +132,48 @@ const PhoneChannelView = ({currentChannelId}: PhoneChannelViewProps) => {
         enabled: isVisible && !isClosing,
     });
 
+    // Populate the animation ref with the close animation logic
+    useEffect(() => {
+        animateOutRef.current = () => {
+            setIsClosing(true);
+
+            // Store the channel ID before closing for potential reopen
+            if (displayedChannelId) {
+                lastClosedChannelIdRef.current = displayedChannelId;
+            }
+
+            // Animate the channel sliding right
+            translateX.value = withTiming(SCREEN_WIDTH, {duration: CHANNEL_ANIMATION_DURATION}, (finished) => {
+                'worklet';
+                if (finished) {
+                    runOnJS(setDisplayedChannelId)(null);
+                    runOnJS(setIsVisible)(false);
+                    runOnJS(setIsClosing)(false);
+
+                    // Clear current channel in database and reset swipe flag
+                    runOnJS(() => {
+                        setTimeout(async () => {
+                            try {
+                                const {operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                                await setCurrentChannelId(operator, '');
+                            } catch {
+                                // Silently handle errors
+                            } finally {
+                                // Only reset the flag after database update completes
+                                isSwipingBack.current = false;
+                            }
+                        }, 0);
+                    })();
+                }
+            });
+        };
+    }, [serverUrl, displayedChannelId, translateX]);
+
     // Handle channel changes
     useEffect(() => {
         // Ignore if we're in the middle of a swipe-back (already handled)
+        // The flag will be reset by the animation completion handler
         if (isSwipingBack.current) {
-            isSwipingBack.current = false;
             return;
         }
 
