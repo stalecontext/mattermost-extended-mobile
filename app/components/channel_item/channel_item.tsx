@@ -8,10 +8,11 @@ import {StyleSheet, TouchableOpacity, View} from 'react-native';
 import Badge from '@components/badge';
 import ChannelIcon from '@components/channel_icon';
 import CompassIcon from '@components/compass_icon';
-import {General} from '@constants';
+import {General, Screens} from '@constants';
 import {HOME_PADDING} from '@constants/view';
 import {useTheme} from '@context/theme';
 import {useIsTablet} from '@hooks/device';
+import {openUserProfileModal} from '@screens/navigation';
 import {isDMorGM} from '@utils/channel';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
@@ -121,7 +122,7 @@ const ChannelItem = ({
     showChannelName = false,
     isOnHome = false,
 }: Props) => {
-    const {formatMessage} = useIntl();
+    const intl = useIntl();
     const theme = useTheme();
     const isTablet = useIsTablet();
     const styles = getStyleSheet(theme);
@@ -137,7 +138,7 @@ const ChannelItem = ({
 
     let displayName = 'displayName' in channel ? channel.displayName : channel.display_name;
     if (isOwnDirectMessage) {
-        displayName = formatMessage({id: 'channel_header.directchannel.you', defaultMessage: '{displayName} (you)'}, {displayName});
+        displayName = intl.formatMessage({id: 'channel_header.directchannel.you', defaultMessage: '{displayName} (you)'}, {displayName});
     }
 
     const deleteAt = 'deleteAt' in channel ? channel.deleteAt : channel.delete_at;
@@ -149,7 +150,18 @@ const ChannelItem = ({
 
     const handleOnPress = useCallback(() => {
         onPress(channel);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onPress is stable, channel reference only matters when id changes
     }, [channel.id]);
+
+    const handleOnLongPress = useCallback(() => {
+        if (teammateId) {
+            openUserProfileModal(intl, theme, {
+                userId: teammateId,
+                location: Screens.HOME,
+            });
+        }
+    }, [intl, teammateId, theme]);
 
     const textStyles = useMemo(() => [
         isBolded && !isMuted ? textStyle.bold : textStyle.regular,
@@ -172,7 +184,10 @@ const ChannelItem = ({
     ], [height, showActive, styles, isOnHome]);
 
     return (
-        <TouchableOpacity onPress={handleOnPress}>
+        <TouchableOpacity
+            onPress={handleOnPress}
+            onLongPress={handleOnLongPress}
+        >
             <View
                 style={containerStyle}
                 testID={channelItemTestId}
