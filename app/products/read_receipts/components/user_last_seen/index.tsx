@@ -9,6 +9,7 @@ import {Text, TouchableOpacity, View} from 'react-native';
 
 import {switchToChannelById} from '@actions/remote/channel';
 import FormattedText from '@components/formatted_text';
+import {getFriendlyDate} from '@components/friendly_date';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
@@ -83,11 +84,9 @@ function UserLastSeen({userId}: Props) {
     const permissions = useReadReceiptsPermissions(serverUrl);
     const [lastChannel, setLastChannel] = useState<UserLastChannelResponse | null>(null);
 
-    const shouldShow = permissions.can_view_receipts && permissions.enable_last_seen;
-
     // Fetch every time the component mounts
     useEffect(() => {
-        if (!shouldShow || !userId) {
+        if (!permissions.enable_last_seen || !userId) {
             return;
         }
 
@@ -99,7 +98,7 @@ function UserLastSeen({userId}: Props) {
         };
 
         fetchLastSeen();
-    }, [shouldShow, serverUrl, userId]);
+    }, [permissions.enable_last_seen, serverUrl, userId]);
 
     const handleChannelPress = useCallback(() => {
         if (lastChannel?.channel_id) {
@@ -107,8 +106,33 @@ function UserLastSeen({userId}: Props) {
         }
     }, [serverUrl, lastChannel?.channel_id]);
 
-    if (!shouldShow || !lastChannel || !lastChannel.channel_id) {
+    if (!permissions.enable_last_seen || !lastChannel || !lastChannel.channel_id) {
         return null;
+    }
+
+    const friendlyDate = getFriendlyDate(intl, lastChannel.last_viewed_at);
+    const timeStamp = (
+        <Text style={styles.text}>
+            {' ' + friendlyDate.toLowerCase()}
+        </Text>
+    );
+
+    if (!permissions.can_view_receipts) {
+        return (
+            <View style={styles.container}>
+                <FormattedText
+                    id={messages.lastSeen.id}
+                    defaultMessage={messages.lastSeen.defaultMessage}
+                    style={styles.title}
+                    testID='user_profile.last_seen.title'
+                />
+                <View style={styles.row}>
+                    <Text style={styles.text}>
+                        {friendlyDate}
+                    </Text>
+                </View>
+            </View>
+        );
     }
 
     const isDm = lastChannel.channel_type === 'D';
@@ -145,6 +169,7 @@ function UserLastSeen({userId}: Props) {
                         {linkText}
                     </Text>
                 </TouchableOpacity>
+                {timeStamp}
             </View>
         </View>
     );
