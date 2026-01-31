@@ -62,6 +62,7 @@ const Preferences = {
     ADVANCED_CODE_BLOCK_ON_CTRL_ENTER: 'code_block_ctrl_enter',
     ADVANCED_SEND_ON_CTRL_ENTER: 'send_on_ctrl_enter',
     HAPTIC_FEEDBACK_ENABLED: 'haptic_feedback_enabled',
+    RENDER_EMOTICONS_AS_EMOJI: 'render_emoticons_as_emoji',
     THEMES: {
         denim: {
             type: 'Denim',

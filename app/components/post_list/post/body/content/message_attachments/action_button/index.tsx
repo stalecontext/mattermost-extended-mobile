@@ -1,22 +1,31 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import {Button} from '@rneui/base';
 import React, {useCallback, useRef} from 'react';
+import {of as of$} from 'rxjs';
+import {switchMap} from 'rxjs/operators';
 
 import {postActionWithCookie} from '@actions/remote/integrations';
+import {Preferences} from '@constants';
 import {useServerUrl} from '@context/server';
+import {getDisplayNamePreferenceAsBool} from '@helpers/api/preference';
 import {usePreventDoubleTap} from '@hooks/utils';
+import {queryDisplayNamePreferences} from '@queries/servers/preference';
 import {getStatusColors} from '@utils/message_attachment';
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
 import {secureGetFromRecord} from '@utils/types';
 
 import ActionButtonText from './action_button_text';
 
+import type {WithDatabaseArgs} from '@typings/database/database';
+
 type Props = {
     buttonColor?: string;
     cookie?: string;
     disabled?: boolean;
+    enableEmoticons: boolean;
     id: string;
     name: string;
     postId: string;
@@ -49,7 +58,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
     };
 });
 
-const ActionButton = ({buttonColor, cookie, disabled, id, name, postId, theme}: Props) => {
+const ActionButton = ({buttonColor, cookie, disabled, enableEmoticons, id, name, postId, theme}: Props) => {
     const presssed = useRef(false);
     const serverUrl = useServerUrl();
     const style = getStyleSheet(theme);
@@ -84,6 +93,7 @@ const ActionButton = ({buttonColor, cookie, disabled, id, name, postId, theme}: 
             disabled={disabled}
         >
             <ActionButtonText
+                enableEmoticons={enableEmoticons}
                 message={name}
                 style={{...style.text, ...customButtonTextStyle}}
             />
@@ -91,4 +101,13 @@ const ActionButton = ({buttonColor, cookie, disabled, id, name, postId, theme}: 
     );
 };
 
-export default ActionButton;
+const enhanced = withObservables([], ({database}: WithDatabaseArgs) => ({
+    enableEmoticons: queryDisplayNamePreferences(database).
+        observeWithColumns(['value']).pipe(
+            switchMap(
+                (preferences) => of$(getDisplayNamePreferenceAsBool(preferences, Preferences.RENDER_EMOTICONS_AS_EMOJI, true)),
+            ),
+        ),
+}));
+
+export default withDatabase(enhanced(ActionButton));

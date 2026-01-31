@@ -5,14 +5,18 @@ import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import {Button} from '@rneui/base';
 import React, {useCallback, useRef} from 'react';
 import {useIntl} from 'react-intl';
-import {map} from 'rxjs/operators';
+import {of as of$} from 'rxjs';
+import {map, switchMap} from 'rxjs/operators';
 
 import {handleBindingClick, postEphemeralCallResponseForPost} from '@actions/remote/apps';
 import {handleGotoLocation} from '@actions/remote/command';
+import {Preferences} from '@constants';
 import {AppBindingLocations, AppCallResponseTypes} from '@constants/apps';
 import {useServerUrl} from '@context/server';
+import {getDisplayNamePreferenceAsBool} from '@helpers/api/preference';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {observeChannel} from '@queries/servers/channel';
+import {queryDisplayNamePreferences} from '@queries/servers/preference';
 import {observeCurrentTeamId} from '@queries/servers/system';
 import {showAppForm} from '@screens/navigation';
 import {createCallContext} from '@utils/apps';
@@ -27,6 +31,7 @@ import type PostModel from '@typings/database/models/servers/post';
 type Props = {
     currentTeamId: string;
     binding: AppBinding;
+    enableEmoticons: boolean;
     post: PostModel;
     teamID?: string;
     theme: Theme;
@@ -56,7 +61,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
     };
 });
 
-const ButtonBinding = ({currentTeamId, binding, post, teamID, theme}: Props) => {
+const ButtonBinding = ({currentTeamId, binding, enableEmoticons, post, teamID, theme}: Props) => {
     const pressed = useRef(false);
     const intl = useIntl();
     const serverUrl = useServerUrl();
@@ -127,6 +132,7 @@ const ButtonBinding = ({currentTeamId, binding, post, teamID, theme}: Props) => 
             onPress={onPress}
         >
             <ButtonBindingText
+                enableEmoticons={enableEmoticons}
                 message={binding.label || intl.formatMessage({id: 'apps.binding.default_button_name', defaultMessage: 'Submit'})}
                 style={style.text}
             />
@@ -134,9 +140,15 @@ const ButtonBinding = ({currentTeamId, binding, post, teamID, theme}: Props) => 
     );
 };
 
-const withTeamId = withObservables(['post'], ({post, database}: {post: PostModel} & WithDatabaseArgs) => ({
+const enhanced = withObservables(['post'], ({post, database}: {post: PostModel} & WithDatabaseArgs) => ({
     teamID: observeChannel(database, post.channelId).pipe(map((channel) => channel?.teamId)),
     currentTeamId: observeCurrentTeamId(database),
+    enableEmoticons: queryDisplayNamePreferences(database).
+        observeWithColumns(['value']).pipe(
+            switchMap(
+                (preferences) => of$(getDisplayNamePreferenceAsBool(preferences, Preferences.RENDER_EMOTICONS_AS_EMOJI, true)),
+            ),
+        ),
 }));
 
-export default withDatabase(withTeamId(ButtonBinding));
+export default withDatabase(enhanced(ButtonBinding));

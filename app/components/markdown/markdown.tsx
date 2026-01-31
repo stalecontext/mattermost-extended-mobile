@@ -56,6 +56,7 @@ type MarkdownProps = {
     disableHeading?: boolean;
     disableQuotes?: boolean;
     disableTables?: boolean;
+    enableEmoticons?: boolean;
     enableLatex: boolean;
     enableInlineLatex: boolean;
     highlightKeys?: HighlightWithoutNotificationKey[];
@@ -153,6 +154,7 @@ const Markdown = ({
     disableHashtags,
     disableHeading,
     disableTables,
+    enableEmoticons = true,
     enableInlineLatex,
     enableLatex,
     maxNodes,
@@ -631,12 +633,8 @@ const Markdown = ({
         });
     };
 
-    // Pattern suggested in https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents
-    const parserRef = useRef<Parser | null>(null);
-    if (parserRef.current === null) {
-        parserRef.current = new Parser({minimumHashtagLength});
-    }
-    const parser = parserRef.current;
+    // Recreate parser when options change
+    const parser = useMemo(() => new Parser({minimumHashtagLength, enableEmoticons}), [minimumHashtagLength, enableEmoticons]);
 
     const renderer = useMemo(createRenderer, [
         renderText,

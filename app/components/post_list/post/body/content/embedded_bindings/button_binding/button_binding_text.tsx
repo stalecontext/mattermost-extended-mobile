@@ -9,6 +9,7 @@ import {reEmoji, reEmoticon, reMain} from '@constants/emoji';
 import {getEmoticonName} from '@utils/emoji/helpers';
 
 type Props = {
+    enableEmoticons?: boolean;
     message: string;
     style: StyleProp<TextStyle>;
 }
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
     },
 });
 
-const ButtonBindingText = ({message, style}: Props) => {
+const ButtonBindingText = ({enableEmoticons = true, message, style}: Props) => {
     const components: React.ReactNode[] = [];
 
     let text = message;
@@ -42,8 +43,8 @@ const ButtonBindingText = ({message, style}: Props) => {
             continue;
         }
 
-        // Or an emoticon
-        if ((match = text.match(reEmoticon))) {
+        // Or an emoticon (only if enabled)
+        if (enableEmoticons && (match = text.match(reEmoticon))) {
             const emoticonName = getEmoticonName(match[0]);
             if (emoticonName) {
                 components.push(
