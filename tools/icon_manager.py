@@ -576,42 +576,41 @@ class ComparisonWidget(QGroupBox):
         self._update_new_preview()
 
     def _update_new_preview(self):
-        """Update the 'New' preview to show SVG/PNG positioned in target's bounds."""
+        """Update the 'New' preview by pre-generating the actual output."""
+        import tempfile
         target = self.current_target
 
-        # Check if target has a PNG override
-        if target and target.override_is_png:
-            source = QImage(str(target.override_path))
-            sim_image = render_png_to_bounds(source, target)
-            self._show_simulated_preview(sim_image)
+        if not target:
+            # No target selected - just show cropped default SVG
+            if self.svg_renderer and self.svg_renderer.isValid():
+                self.new_preview.set_svg(self.svg_renderer, self.svg_bounds)
+            else:
+                self.new_preview.set_image()
             return
 
-        # Determine which SVG to use (override or default)
-        if target and target.override_path:
-            # Target has an SVG override - load it
+        # Determine source
+        if target.override_is_png:
+            source = QImage(str(target.override_path))
+            image = render_png_to_bounds(source, target)
+        elif target.override_path:
+            # SVG override
             renderer = QSvgRenderer(str(target.override_path))
             if not renderer.isValid():
                 self.new_preview.set_image()
                 return
             svg_bounds = get_svg_content_bounds(renderer)
+            image = render_svg_cropped(renderer, target, svg_bounds)
+        elif self.svg_renderer and self.svg_renderer.isValid():
+            # Default SVG
+            image = render_svg_cropped(self.svg_renderer, target, self.svg_bounds)
         else:
-            # Use default SVG
-            renderer = self.svg_renderer
-            svg_bounds = self.svg_bounds
-
-        if not renderer or not renderer.isValid():
             self.new_preview.set_image()
             return
 
-        if not target:
-            # No target selected - just show cropped SVG
-            self.new_preview.set_svg(renderer, svg_bounds)
-            return
-
-        # Render a preview showing where the SVG will actually appear in the icon
-        # This uses the SAME render_svg_cropped function as generation
-        sim_image = render_svg_cropped(renderer, target, svg_bounds)
-        self._show_simulated_preview(sim_image)
+        # Save to temp file and display - guarantees preview matches output
+        temp_path = Path(tempfile.gettempdir()) / "icon_manager_preview.png"
+        image.save(str(temp_path), "PNG")
+        self.new_preview.set_image(path=temp_path)
 
     def _show_simulated_preview(self, sim_image: QImage):
         """Display a simulated image in the new preview."""
