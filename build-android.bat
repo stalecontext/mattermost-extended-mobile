@@ -1,0 +1,1 @@
+cd fastlane && bundle exec fastlane android build --env android.release
