@@ -1,1 +1,1 @@
-cd fastlane && bundle exec fastlane android build --env android.custom
+cd android && gradlew clean && cd ..\fastlane && bundle exec fastlane android build --env android.custom
