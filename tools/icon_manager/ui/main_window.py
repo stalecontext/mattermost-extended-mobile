@@ -20,7 +20,7 @@ from PyQt6.QtSvg import QSvgRenderer
 from ..core import (
     COLORS, PROJECT_ROOT, CONFIG_PATH,
     ANDROID_RES_DIR, IOS_ASSETS_DIR, ASSETS_ANDROID_DIR, ASSETS_IOS_DIR,
-    MIPMAP_SIZES, ANDROID_ICON_FILES,
+    MIPMAP_SIZES, ADAPTIVE_ICON_SIZES, ANDROID_LEGACY_ICONS, ANDROID_ADAPTIVE_ICONS,
     IconTarget, IconBounds, Config,
 )
 from ..rendering import (
@@ -247,11 +247,22 @@ class IconManagerWindow(QMainWindow):
 
     def _scan_android(self, base_path: Path, category: str):
         """Scan Android mipmap directories."""
+        # Scan legacy launcher icons (48dp base)
         for mipmap_dir, size in MIPMAP_SIZES.items():
             mipmap_path = base_path / mipmap_dir
             if not mipmap_path.exists():
                 continue
-            for icon_file in ANDROID_ICON_FILES:
+            for icon_file in ANDROID_LEGACY_ICONS:
+                icon_path = mipmap_path / icon_file
+                if icon_path.exists():
+                    self._add_icon(icon_path, icon_file, size, category)
+
+        # Scan adaptive icon layers (108dp base)
+        for mipmap_dir, size in ADAPTIVE_ICON_SIZES.items():
+            mipmap_path = base_path / mipmap_dir
+            if not mipmap_path.exists():
+                continue
+            for icon_file in ANDROID_ADAPTIVE_ICONS:
                 icon_path = mipmap_path / icon_file
                 if icon_path.exists():
                     self._add_icon(icon_path, icon_file, size, category)

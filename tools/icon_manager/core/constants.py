@@ -18,7 +18,7 @@ ASSETS_IOS_DIR = PROJECT_ROOT / "assets" / "base" / "release" / "icons" / "ios"
 # Config file (in the same folder as main.py)
 CONFIG_PATH = PACKAGE_DIR / "icon_manager_config.json"
 
-# Android mipmap size mappings
+# Android mipmap size mappings for legacy launcher icons (48dp base)
 MIPMAP_SIZES = {
     "mipmap-mdpi": 48,
     "mipmap-hdpi": 72,
@@ -27,12 +27,30 @@ MIPMAP_SIZES = {
     "mipmap-xxxhdpi": 192,
 }
 
-# Android icon files to process
-ANDROID_ICON_FILES = [
+# Android mipmap size mappings for adaptive icon layers (108dp base)
+# Adaptive icons use 108dp with a 72dp safe zone; outer 18dp can be clipped
+ADAPTIVE_ICON_SIZES = {
+    "mipmap-mdpi": 108,
+    "mipmap-hdpi": 162,
+    "mipmap-xhdpi": 216,
+    "mipmap-xxhdpi": 324,
+    "mipmap-xxxhdpi": 432,
+}
+
+# Legacy Android icon files (use MIPMAP_SIZES)
+ANDROID_LEGACY_ICONS = [
     "ic_launcher.png",
     "ic_launcher_round.png",
-    "ic_launcher_foreground.png",
 ]
+
+# Adaptive icon layers (use ADAPTIVE_ICON_SIZES)
+ANDROID_ADAPTIVE_ICONS = [
+    "ic_launcher_foreground.png",
+    "ic_launcher_background.png",
+]
+
+# All Android icon files to process
+ANDROID_ICON_FILES = ANDROID_LEGACY_ICONS + ANDROID_ADAPTIVE_ICONS
 
 # Mattermost color palette
 COLORS = {
