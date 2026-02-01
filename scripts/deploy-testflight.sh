@@ -117,6 +117,33 @@ with open('$api_key_file') as f:
     export IOS_API_KEY
 }
 
+# Get the latest build number from TestFlight
+get_latest_testflight_build() {
+    cd "$FASTLANE_DIR"
+
+    # Source the env file to get MAIN_APP_IDENTIFIER and API key path
+    source ".env.ios.testflight"
+
+    local app_id="${MAIN_APP_IDENTIFIER:-com.mattermost.rnbeta}"
+    local api_key_path="${APP_STORE_CONNECT_API_KEY_PATH:-$FASTLANE_DIR/api_key.json}"
+
+    # Use fastlane to get the latest build number
+    local latest_build
+    latest_build=$(bundle exec fastlane run latest_testflight_build_number \
+        app_identifier:"$app_id" \
+        api_key_path:"$api_key_path" 2>&1 | grep "Result:" | sed 's/.*Result: //' | sed 's/\x1b\[[0-9;]*m//g' | tr -d '[:space:]')
+
+    # If we couldn't get the build number, default to 0
+    if [[ -z "$latest_build" ]] || ! [[ "$latest_build" =~ ^[0-9]+$ ]]; then
+        print_warning "Could not fetch latest TestFlight build, using local build number"
+        echo ""
+    else
+        echo "$latest_build"
+    fi
+
+    cd "$PROJECT_ROOT"
+}
+
 # Build the IPA
 build_ipa() {
     cd "$FASTLANE_DIR"
@@ -138,8 +165,18 @@ build_ipa() {
 
         # Auto-increment build number unless --no-increment is specified
         if [[ "$NO_INCREMENT" != "true" ]]; then
-            print_success "Incrementing build number..."
-            INCREMENT_BUILD_NUMBER=true bundle exec fastlane set_app_build_number --env ios.testflight
+            print_success "Fetching latest TestFlight build number..."
+            local testflight_build
+            testflight_build=$(get_latest_testflight_build)
+
+            if [[ -n "$testflight_build" ]]; then
+                local new_build=$((testflight_build + 1))
+                print_success "TestFlight has build $testflight_build, incrementing to $new_build"
+                INCREMENT_BUILD_NUMBER=true BUILD_NUMBER="$new_build" bundle exec fastlane set_app_build_number --env ios.testflight
+            else
+                print_success "Incrementing build number from local..."
+                INCREMENT_BUILD_NUMBER=true bundle exec fastlane set_app_build_number --env ios.testflight
+            fi
         fi
     fi
 
