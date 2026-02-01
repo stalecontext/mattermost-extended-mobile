@@ -586,17 +586,31 @@ class ComparisonWidget(QGroupBox):
             self._show_simulated_preview(sim_image)
             return
 
-        if not self.svg_renderer or not self.svg_renderer.isValid():
+        # Determine which SVG to use (override or default)
+        if target and target.override_path:
+            # Target has an SVG override - load it
+            renderer = QSvgRenderer(str(target.override_path))
+            if not renderer.isValid():
+                self.new_preview.set_image()
+                return
+            svg_bounds = get_svg_content_bounds(renderer)
+        else:
+            # Use default SVG
+            renderer = self.svg_renderer
+            svg_bounds = self.svg_bounds
+
+        if not renderer or not renderer.isValid():
             self.new_preview.set_image()
             return
 
         if not target:
             # No target selected - just show cropped SVG
-            self.new_preview.set_svg(self.svg_renderer, self.svg_bounds)
+            self.new_preview.set_svg(renderer, svg_bounds)
             return
 
         # Render a preview showing where the SVG will actually appear in the icon
-        sim_image = render_svg_cropped(self.svg_renderer, target, self.svg_bounds)
+        # This uses the SAME render_svg_cropped function as generation
+        sim_image = render_svg_cropped(renderer, target, svg_bounds)
         self._show_simulated_preview(sim_image)
 
     def _show_simulated_preview(self, sim_image: QImage):
