@@ -364,4 +364,4 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-tools/icon_manager_config.json
+icon_manager_config.json
