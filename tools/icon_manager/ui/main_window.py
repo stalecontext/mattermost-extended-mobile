@@ -1,748 +1,34 @@
-#!/usr/bin/env python3
 """
-Icon Manager Tool for Mattermost Mobile
-Converts SVG files to PNG icons at various resolutions for Android and iOS.
+Main window for the Icon Manager application.
 """
 
-import sys
 import json
-import zipfile
 import shutil
+import zipfile
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QTableWidget, QTableWidgetItem,
-    QGroupBox, QMessageBox, QProgressDialog, QHeaderView,
-    QAbstractItemView, QCheckBox, QMenu
+    QMessageBox, QProgressDialog, QHeaderView,
+    QAbstractItemView, QCheckBox, QMenu, QApplication
 )
-from PyQt6.QtCore import Qt, QSize, QRectF
-from PyQt6.QtGui import QPixmap, QImage, QPainter, QColor, QIcon, QAction
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QImage, QColor, QIcon, QAction
 from PyQt6.QtSvg import QSvgRenderer
 
-# Project paths relative to this script
-SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent
-ANDROID_RES_DIR = PROJECT_ROOT / "android" / "app" / "src" / "main" / "res"
-IOS_ASSETS_DIR = PROJECT_ROOT / "ios" / "Mattermost" / "Images.xcassets" / "AppIcon.appiconset"
-ASSETS_ANDROID_DIR = PROJECT_ROOT / "assets" / "base" / "release" / "icons" / "android"
-ASSETS_IOS_DIR = PROJECT_ROOT / "assets" / "base" / "release" / "icons" / "ios"
-CONFIG_PATH = SCRIPT_DIR / "icon_manager_config.json"
+from ..core import (
+    COLORS, PROJECT_ROOT, CONFIG_PATH,
+    ANDROID_RES_DIR, IOS_ASSETS_DIR, ASSETS_ANDROID_DIR, ASSETS_IOS_DIR,
+    MIPMAP_SIZES, ANDROID_ICON_FILES,
+    IconTarget, IconBounds, Config,
+)
+from ..rendering import (
+    get_image_bounds, get_svg_content_bounds, load_icon_preview,
+    render_svg_cropped, render_png_to_bounds,
+)
+from .widgets import SvgInputWidget, ComparisonWidget
 
-# ============================================================================
-# Theme and Colors (Mattermost Blue)
-# ============================================================================
-
-COLORS = {
-    "background": "#F0F4F8",
-    "surface": "#FFFFFF",
-    "surface_alt": "#E8EEF4",
-    "primary": "#1E325C",
-    "primary_light": "#2389D7",
-    "primary_hover": "#1C7AC0",
-    "primary_pressed": "#166BB3",
-    "text_primary": "#1E325C",
-    "text_secondary": "#5D6E7E",
-    "text_disabled": "#A0AEB8",
-    "text_inverse": "#FFFFFF",
-    "success": "#3DB887",
-    "error": "#D24B4E",
-    "warning": "#FFBC1F",
-    "border": "#C4CDD6",
-    "border_focus": "#2389D7",
-    "row_alt": "#F7FAFC",
-    "selected": "#E3F2FD",
-    "checker_light": "#FFFFFF",
-    "checker_dark": "#E0E0E0",
-}
-
-
-class Theme:
-    @staticmethod
-    def get_stylesheet() -> str:
-        return f"""
-            QMainWindow, QWidget {{
-                background-color: {COLORS['background']};
-                color: {COLORS['text_primary']};
-                font-family: "Segoe UI", "Open Sans", Arial, sans-serif;
-                font-size: 10pt;
-            }}
-            QGroupBox {{
-                background-color: {COLORS['surface']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 8px;
-                margin-top: 16px;
-                padding: 16px;
-                padding-top: 24px;
-                font-weight: bold;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 12px;
-                color: {COLORS['text_primary']};
-                font-weight: bold;
-                font-size: 11pt;
-            }}
-            QPushButton {{
-                background-color: {COLORS['primary']};
-                color: {COLORS['text_inverse']};
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-weight: bold;
-                min-height: 20px;
-            }}
-            QPushButton:hover {{ background-color: {COLORS['primary_light']}; }}
-            QPushButton:pressed {{ background-color: {COLORS['primary_pressed']}; }}
-            QPushButton:disabled {{ background-color: {COLORS['text_disabled']}; color: {COLORS['surface']}; }}
-            QPushButton[secondary="true"] {{
-                background-color: {COLORS['surface']};
-                color: {COLORS['text_primary']};
-                border: 1px solid {COLORS['border']};
-            }}
-            QPushButton[secondary="true"]:hover {{
-                background-color: {COLORS['surface_alt']};
-                border-color: {COLORS['primary_light']};
-            }}
-            QTableWidget {{
-                background-color: {COLORS['surface']};
-                alternate-background-color: {COLORS['row_alt']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 6px;
-                gridline-color: {COLORS['border']};
-            }}
-            QTableWidget::item {{ padding: 4px 8px; }}
-            QTableWidget::item:selected {{ background-color: {COLORS['selected']}; color: {COLORS['text_primary']}; }}
-            QHeaderView::section {{
-                background-color: {COLORS['surface_alt']};
-                color: {COLORS['text_primary']};
-                padding: 8px 12px;
-                border: none;
-                border-right: 1px solid {COLORS['border']};
-                border-bottom: 1px solid {COLORS['border']};
-                font-weight: bold;
-            }}
-            QScrollBar:vertical {{
-                background-color: {COLORS['surface']};
-                width: 12px;
-                border-radius: 6px;
-            }}
-            QScrollBar::handle:vertical {{
-                background-color: {COLORS['border']};
-                border-radius: 6px;
-                min-height: 30px;
-            }}
-            QScrollBar::handle:vertical:hover {{ background-color: {COLORS['primary_light']}; }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
-            QLabel {{ background-color: transparent; }}
-            QCheckBox {{ background-color: transparent; }}
-            QCheckBox::indicator {{ width: 18px; height: 18px; }}
-            QCheckBox::indicator:unchecked {{
-                border: 2px solid {COLORS['border']};
-                border-radius: 3px;
-                background: {COLORS['surface']};
-            }}
-            QCheckBox::indicator:checked {{
-                border: 2px solid {COLORS['primary_light']};
-                border-radius: 3px;
-                background: {COLORS['primary_light']};
-            }}
-        """
-
-
-# ============================================================================
-# Data Classes
-# ============================================================================
-
-@dataclass
-class IconBounds:
-    """Bounding box of non-transparent content in an image."""
-    x: int = 0
-    y: int = 0
-    width: int = 0
-    height: int = 0
-    image_width: int = 0
-    image_height: int = 0
-
-    @property
-    def is_full(self) -> bool:
-        return (self.x == 0 and self.y == 0 and
-                self.width == self.image_width and self.height == self.image_height)
-
-    @property
-    def is_empty(self) -> bool:
-        return self.width == 0 or self.height == 0
-
-
-@dataclass
-class IconTarget:
-    """Represents a target icon file to generate."""
-    name: str
-    width: int
-    height: int
-    path: Path
-    category: str
-    bounds: Optional[IconBounds] = None
-    override_path: Optional[Path] = None  # Can be SVG or PNG
-
-    @property
-    def rel_path(self) -> str:
-        try:
-            return str(self.path.relative_to(PROJECT_ROOT))
-        except ValueError:
-            return str(self.path)
-
-    @property
-    def override_is_png(self) -> bool:
-        return self.override_path and self.override_path.suffix.lower() == '.png'
-
-
-@dataclass
-class Config:
-    """Saved configuration with SVG/PNG overrides."""
-    default_svg: Optional[str] = None
-    overrides: dict[str, str] = field(default_factory=dict)  # rel_path -> override_path
-    last_browse_dir: Optional[str] = None  # Remember last browsed folder
-
-    def save(self, path: Path):
-        data = {
-            "default_svg": self.default_svg,
-            "overrides": self.overrides,
-            "last_browse_dir": self.last_browse_dir
-        }
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2)
-
-    @classmethod
-    def load(cls, path: Path) -> "Config":
-        if not path.exists():
-            return cls()
-        try:
-            with open(path) as f:
-                data = json.load(f)
-            return cls(
-                default_svg=data.get("default_svg"),
-                overrides=data.get("overrides", {}),
-                last_browse_dir=data.get("last_browse_dir")
-            )
-        except (json.JSONDecodeError, KeyError):
-            return cls()
-
-
-# ============================================================================
-# Image Utilities
-# ============================================================================
-
-def create_checkerboard(width: int, height: int, tile_size: int = 8) -> QPixmap:
-    """Create a checkerboard pattern pixmap for transparency preview."""
-    pixmap = QPixmap(width, height)
-    painter = QPainter(pixmap)
-    light = QColor(COLORS["checker_light"])
-    dark = QColor(COLORS["checker_dark"])
-    for y in range(0, height, tile_size):
-        for x in range(0, width, tile_size):
-            color = light if (x // tile_size + y // tile_size) % 2 == 0 else dark
-            painter.fillRect(x, y, tile_size, tile_size, color)
-    painter.end()
-    return pixmap
-
-
-def get_image_bounds(image: QImage) -> IconBounds:
-    """Find the bounding box of non-transparent content in an image."""
-    if image.isNull():
-        return IconBounds()
-
-    width = image.width()
-    height = image.height()
-
-    if image.format() != QImage.Format.Format_ARGB32:
-        image = image.convertToFormat(QImage.Format.Format_ARGB32)
-
-    min_x, min_y = width, height
-    max_x, max_y = 0, 0
-
-    for y in range(height):
-        for x in range(width):
-            pixel = image.pixel(x, y)
-            alpha = (pixel >> 24) & 0xFF
-            if alpha > 10:
-                min_x = min(min_x, x)
-                min_y = min(min_y, y)
-                max_x = max(max_x, x)
-                max_y = max(max_y, y)
-
-    if max_x < min_x or max_y < min_y:
-        return IconBounds(0, 0, width, height, width, height)
-
-    return IconBounds(
-        x=min_x, y=min_y,
-        width=max_x - min_x + 1,
-        height=max_y - min_y + 1,
-        image_width=width, image_height=height
-    )
-
-
-def get_svg_content_bounds(renderer: QSvgRenderer, render_size: int = 512) -> IconBounds:
-    """Render SVG and find the bounds of its visible content."""
-    image = QImage(render_size, render_size, QImage.Format.Format_ARGB32)
-    image.fill(Qt.GlobalColor.transparent)
-
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-    renderer.render(painter, QRectF(0, 0, render_size, render_size))
-    painter.end()
-
-    return get_image_bounds(image)
-
-
-def load_icon_preview(path: Path, size: int = 48) -> QPixmap:
-    """Load an icon and create a preview with checkerboard background."""
-    result = create_checkerboard(size, size, 6)
-    icon = QImage(str(path))
-    if icon.isNull():
-        return result
-
-    scaled = icon.scaled(size, size,
-                         Qt.AspectRatioMode.KeepAspectRatio,
-                         Qt.TransformationMode.SmoothTransformation)
-    painter = QPainter(result)
-    x = (size - scaled.width()) // 2
-    y = (size - scaled.height()) // 2
-    painter.drawImage(x, y, scaled)
-    painter.end()
-    return result
-
-
-def render_png_to_bounds(source: QImage, target: IconTarget) -> QImage:
-    """Render a PNG override into the target's content bounds."""
-    image = QImage(target.width, target.height, QImage.Format.Format_ARGB32)
-    image.fill(Qt.GlobalColor.transparent)
-
-    if source.isNull():
-        return image
-
-    # Determine destination rect
-    if target.bounds and not target.bounds.is_full:
-        dest_rect = QRectF(target.bounds.x, target.bounds.y,
-                           target.bounds.width, target.bounds.height)
-    else:
-        dest_rect = QRectF(0, 0, target.width, target.height)
-
-    # Find source content bounds and crop
-    source_bounds = get_image_bounds(source)
-    if not source_bounds.is_full and not source_bounds.is_empty:
-        # Crop to content
-        cropped = source.copy(source_bounds.x, source_bounds.y,
-                              source_bounds.width, source_bounds.height)
-    else:
-        cropped = source
-
-    # Scale to fit dest_rect while maintaining aspect ratio
-    scaled = cropped.scaled(int(dest_rect.width()), int(dest_rect.height()),
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation)
-
-    # Center in dest_rect
-    offset_x = dest_rect.x() + (dest_rect.width() - scaled.width()) / 2
-    offset_y = dest_rect.y() + (dest_rect.height() - scaled.height()) / 2
-
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-    painter.drawImage(int(offset_x), int(offset_y), scaled)
-    painter.end()
-
-    return image
-
-
-def render_svg_cropped(renderer: QSvgRenderer, target: IconTarget, svg_bounds: IconBounds) -> QImage:
-    """
-    Render SVG to target size, cropping SVG padding and positioning within target bounds.
-
-    If the target has content bounds (e.g., adaptive icon foreground), the SVG content
-    is rendered into that specific area. The SVG's own padding is cropped out.
-    """
-    image = QImage(target.width, target.height, QImage.Format.Format_ARGB32)
-    image.fill(Qt.GlobalColor.transparent)
-
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-
-    # Determine where to render in the target image
-    if target.bounds and not target.bounds.is_full:
-        # Target has specific content bounds (e.g., adaptive icon)
-        dest_rect = QRectF(target.bounds.x, target.bounds.y,
-                           target.bounds.width, target.bounds.height)
-    else:
-        # Full image
-        dest_rect = QRectF(0, 0, target.width, target.height)
-
-    # If SVG has padding, we need to render only the content portion
-    if not svg_bounds.is_full and not svg_bounds.is_empty:
-        # Calculate the normalized bounds within the SVG's viewBox
-        # We rendered at a fixed size to detect bounds, now scale back to viewBox
-        svg_size = renderer.defaultSize()
-        if svg_size.isEmpty():
-            svg_size = QSize(svg_bounds.image_width, svg_bounds.image_height)
-
-        # Scale factors from render size to SVG viewBox
-        scale_x = svg_size.width() / svg_bounds.image_width
-        scale_y = svg_size.height() / svg_bounds.image_height
-
-        # The content rect in SVG coordinates
-        content_x = svg_bounds.x * scale_x
-        content_y = svg_bounds.y * scale_y
-        content_w = svg_bounds.width * scale_x
-        content_h = svg_bounds.height * scale_y
-
-        # Calculate scaling to fit content into dest_rect while maintaining aspect ratio
-        scale = min(dest_rect.width() / content_w, dest_rect.height() / content_h)
-
-        # Calculate the offset to center the content
-        scaled_w = content_w * scale
-        scaled_h = content_h * scale
-        offset_x = dest_rect.x() + (dest_rect.width() - scaled_w) / 2
-        offset_y = dest_rect.y() + (dest_rect.height() - scaled_h) / 2
-
-        # Set up transform: translate to dest, scale, then translate to crop the content
-        painter.translate(offset_x, offset_y)
-        painter.scale(scale, scale)
-        painter.translate(-content_x, -content_y)
-
-        # Render the full SVG (the transform will crop/position it)
-        renderer.render(painter, QRectF(0, 0, svg_size.width(), svg_size.height()))
-    else:
-        # No cropping needed, render directly to dest_rect
-        renderer.render(painter, dest_rect)
-
-    painter.end()
-    return image
-
-
-# ============================================================================
-# Preview Widgets
-# ============================================================================
-
-class IconPreviewLabel(QLabel):
-    """Label that displays an icon with checkerboard background."""
-
-    def __init__(self, size: int = 96, parent=None):
-        super().__init__(parent)
-        self.preview_size = size
-        self.current_path: Optional[Path] = None
-        self.setFixedSize(size, size)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._show_context_menu)
-        self._set_placeholder()
-
-    def _show_context_menu(self, pos):
-        if not self.current_path or not self.current_path.exists():
-            return
-        menu = QMenu(self)
-        open_folder = QAction("Open Containing Folder", self)
-        open_folder.triggered.connect(self._open_containing_folder)
-        menu.addAction(open_folder)
-        menu.exec(self.mapToGlobal(pos))
-
-    def _open_containing_folder(self):
-        import subprocess
-        import sys
-        if not self.current_path or not self.current_path.exists():
-            return
-        folder = self.current_path.parent
-        if sys.platform == "win32":
-            subprocess.run(["explorer", "/select,", str(self.current_path)])
-        elif sys.platform == "darwin":
-            subprocess.run(["open", "-R", str(self.current_path)])
-        else:
-            subprocess.run(["xdg-open", str(folder)])
-
-    def _set_placeholder(self):
-        self.current_path = None
-        self.setText("—")
-        self.setStyleSheet(f"""
-            QLabel {{
-                background-color: {COLORS['surface_alt']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 8px;
-                color: {COLORS['text_disabled']};
-                font-size: 24px;
-            }}
-        """)
-
-    def set_image(self, path: Optional[Path] = None, image: Optional[QImage] = None):
-        if path is None and image is None:
-            self.current_path = None
-            self._set_placeholder()
-            return
-
-        self.current_path = Path(path) if path else None
-        bg = create_checkerboard(self.preview_size, self.preview_size, 8)
-        img = QImage(str(path)) if path else image
-
-        if img and not img.isNull():
-            scaled = img.scaled(self.preview_size, self.preview_size,
-                               Qt.AspectRatioMode.KeepAspectRatio,
-                               Qt.TransformationMode.SmoothTransformation)
-            painter = QPainter(bg)
-            x = (self.preview_size - scaled.width()) // 2
-            y = (self.preview_size - scaled.height()) // 2
-            painter.drawImage(x, y, scaled)
-            painter.end()
-
-        self.setPixmap(bg)
-        self.setStyleSheet(f"QLabel {{ border: 1px solid {COLORS['border']}; border-radius: 8px; }}")
-
-    def set_svg(self, renderer: Optional[QSvgRenderer], bounds: Optional[IconBounds] = None):
-        if renderer is None or not renderer.isValid():
-            self._set_placeholder()
-            return
-
-        self.current_path = None  # SVG preview has no file path
-        bg = create_checkerboard(self.preview_size, self.preview_size, 8)
-        image = QImage(self.preview_size, self.preview_size, QImage.Format.Format_ARGB32)
-        image.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(image)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        if bounds and not bounds.is_full and not bounds.is_empty:
-            # Show cropped preview
-            svg_size = renderer.defaultSize()
-            if svg_size.isEmpty():
-                svg_size = QSize(bounds.image_width, bounds.image_height)
-
-            scale_x = svg_size.width() / bounds.image_width
-            scale_y = svg_size.height() / bounds.image_height
-            content_x = bounds.x * scale_x
-            content_y = bounds.y * scale_y
-            content_w = bounds.width * scale_x
-            content_h = bounds.height * scale_y
-
-            scale = min(self.preview_size / content_w, self.preview_size / content_h)
-            scaled_w = content_w * scale
-            scaled_h = content_h * scale
-            offset_x = (self.preview_size - scaled_w) / 2
-            offset_y = (self.preview_size - scaled_h) / 2
-
-            painter.translate(offset_x, offset_y)
-            painter.scale(scale, scale)
-            painter.translate(-content_x, -content_y)
-            renderer.render(painter, QRectF(0, 0, svg_size.width(), svg_size.height()))
-        else:
-            renderer.render(painter, QRectF(0, 0, self.preview_size, self.preview_size))
-
-        painter.end()
-
-        bg_painter = QPainter(bg)
-        bg_painter.drawImage(0, 0, image)
-        bg_painter.end()
-
-        self.setPixmap(bg)
-        self.setStyleSheet(f"QLabel {{ border: 1px solid {COLORS['border']}; border-radius: 8px; }}")
-
-
-class ComparisonWidget(QGroupBox):
-    """Widget showing before/after icon comparison."""
-
-    def __init__(self, parent=None):
-        super().__init__("Preview", parent)
-        self.svg_renderer: Optional[QSvgRenderer] = None
-        self.svg_bounds: Optional[IconBounds] = None
-        self.current_target: Optional[IconTarget] = None
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(16)
-
-        compare_layout = QHBoxLayout()
-        compare_layout.setSpacing(16)
-
-        # Current icon
-        current_col = QVBoxLayout()
-        current_col.setSpacing(4)
-        current_label = QLabel("Current")
-        current_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        current_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 9pt;")
-        self.current_preview = IconPreviewLabel(96)
-        current_col.addWidget(current_label)
-        current_col.addWidget(self.current_preview, alignment=Qt.AlignmentFlag.AlignCenter)
-        compare_layout.addLayout(current_col)
-
-        arrow = QLabel("→")
-        arrow.setStyleSheet(f"font-size: 28px; color: {COLORS['text_disabled']};")
-        arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        compare_layout.addWidget(arrow)
-
-        # New icon
-        new_col = QVBoxLayout()
-        new_col.setSpacing(4)
-        new_label = QLabel("New")
-        new_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        new_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 9pt;")
-        self.new_preview = IconPreviewLabel(96)
-        new_col.addWidget(new_label)
-        new_col.addWidget(self.new_preview, alignment=Qt.AlignmentFlag.AlignCenter)
-        compare_layout.addLayout(new_col)
-
-        layout.addLayout(compare_layout)
-
-        self.info_label = QLabel("Select an icon to preview")
-        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.info_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 9pt;")
-        self.info_label.setWordWrap(True)
-        layout.addWidget(self.info_label)
-
-        layout.addStretch()
-
-    def set_svg(self, renderer: Optional[QSvgRenderer], bounds: Optional[IconBounds] = None):
-        self.svg_renderer = renderer
-        self.svg_bounds = bounds
-        self._update_new_preview()
-
-    def _update_new_preview(self):
-        """Update the 'New' preview by pre-generating the actual output."""
-        import tempfile
-        target = self.current_target
-
-        if not target:
-            # No target selected - just show cropped default SVG
-            if self.svg_renderer and self.svg_renderer.isValid():
-                self.new_preview.set_svg(self.svg_renderer, self.svg_bounds)
-            else:
-                self.new_preview.set_image()
-            return
-
-        # Determine source
-        if target.override_is_png:
-            source = QImage(str(target.override_path))
-            image = render_png_to_bounds(source, target)
-        elif target.override_path:
-            # SVG override
-            renderer = QSvgRenderer(str(target.override_path))
-            if not renderer.isValid():
-                self.new_preview.set_image()
-                return
-            svg_bounds = get_svg_content_bounds(renderer)
-            image = render_svg_cropped(renderer, target, svg_bounds)
-        elif self.svg_renderer and self.svg_renderer.isValid():
-            # Default SVG
-            image = render_svg_cropped(self.svg_renderer, target, self.svg_bounds)
-        else:
-            self.new_preview.set_image()
-            return
-
-        # Save to temp file and display - guarantees preview matches output
-        temp_path = Path(tempfile.gettempdir()) / "icon_manager_preview.png"
-        image.save(str(temp_path), "PNG")
-        self.new_preview.set_image(path=temp_path)
-
-    def _show_simulated_preview(self, sim_image: QImage):
-        """Display a simulated image in the new preview."""
-        preview_size = self.new_preview.preview_size
-
-        # Scale to preview size
-        scaled = sim_image.scaled(preview_size, preview_size,
-                                  Qt.AspectRatioMode.KeepAspectRatio,
-                                  Qt.TransformationMode.SmoothTransformation)
-
-        # Draw on checkerboard
-        bg = create_checkerboard(preview_size, preview_size, 8)
-        painter = QPainter(bg)
-        x = (preview_size - scaled.width()) // 2
-        y = (preview_size - scaled.height()) // 2
-        painter.drawImage(x, y, scaled)
-        painter.end()
-
-        self.new_preview.setPixmap(bg)
-        self.new_preview.setStyleSheet(f"QLabel {{ border: 1px solid {COLORS['border']}; border-radius: 8px; }}")
-
-    def set_current(self, target: Optional[IconTarget]):
-        self.current_target = target
-
-        if target is None:
-            self.current_preview.set_image()
-            self.new_preview.set_image()
-            self.info_label.setText("Select an icon to preview")
-            return
-
-        self.current_preview.set_image(path=target.path)
-        self._update_new_preview()
-
-        bounds_info = ""
-        if target.bounds and not target.bounds.is_full:
-            b = target.bounds
-            bounds_info = f"\nContent: {b.width}×{b.height} at ({b.x}, {b.y})"
-
-        override_info = ""
-        if target.override_path:
-            override_info = f"\nOverride: {target.override_path.name}"
-
-        self.info_label.setText(f"{target.name}\n{target.width}×{target.height}px{bounds_info}{override_info}")
-
-
-class SvgInputWidget(QGroupBox):
-    """Widget for SVG file input with preview."""
-
-    def __init__(self, parent=None):
-        super().__init__("Default SVG", parent)
-        self.svg_path: Optional[Path] = None
-        self.svg_renderer: Optional[QSvgRenderer] = None
-        self.svg_bounds: Optional[IconBounds] = None
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-
-        self.preview = IconPreviewLabel(128)
-        self.preview.setText("Drop SVG\nor Browse")
-        layout.addWidget(self.preview, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.path_label = QLabel("No file selected")
-        self.path_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.path_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 9pt;")
-        self.path_label.setWordWrap(True)
-        layout.addWidget(self.path_label)
-
-        self.bounds_label = QLabel("")
-        self.bounds_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.bounds_label.setStyleSheet(f"color: {COLORS['text_disabled']}; font-size: 8pt;")
-        layout.addWidget(self.bounds_label)
-
-        self.browse_btn = QPushButton("Browse SVG...")
-        layout.addWidget(self.browse_btn)
-
-        layout.addStretch()
-
-    def set_svg(self, path: Path) -> bool:
-        renderer = QSvgRenderer(str(path))
-        if not renderer.isValid():
-            return False
-
-        self.svg_path = path
-        self.svg_renderer = renderer
-        self.svg_bounds = get_svg_content_bounds(renderer)
-
-        self.preview.set_svg(renderer, self.svg_bounds)
-        self.path_label.setText(path.name)
-        self.path_label.setToolTip(str(path))
-
-        if self.svg_bounds and not self.svg_bounds.is_full:
-            b = self.svg_bounds
-            padding_pct = 100 - (b.width * b.height * 100) // (b.image_width * b.image_height)
-            self.bounds_label.setText(f"Content: {b.width}×{b.height} ({padding_pct}% padding cropped)")
-        else:
-            self.bounds_label.setText("No padding detected")
-
-        return True
-
-
-# ============================================================================
-# Main Window
-# ============================================================================
 
 class IconManagerWindow(QMainWindow):
     """Main window for the Icon Manager tool."""
@@ -943,20 +229,11 @@ class IconManagerWindow(QMainWindow):
 
     def _scan_android(self, base_path: Path, category: str):
         """Scan Android mipmap directories."""
-        mipmap_sizes = {
-            "mipmap-mdpi": 48,
-            "mipmap-hdpi": 72,
-            "mipmap-xhdpi": 96,
-            "mipmap-xxhdpi": 144,
-            "mipmap-xxxhdpi": 192,
-        }
-        icon_files = ["ic_launcher.png", "ic_launcher_round.png", "ic_launcher_foreground.png"]
-
-        for mipmap_dir, size in mipmap_sizes.items():
+        for mipmap_dir, size in MIPMAP_SIZES.items():
             mipmap_path = base_path / mipmap_dir
             if not mipmap_path.exists():
                 continue
-            for icon_file in icon_files:
+            for icon_file in ANDROID_ICON_FILES:
                 icon_path = mipmap_path / icon_file
                 if icon_path.exists():
                     self._add_icon(icon_path, icon_file, size, category)
@@ -1194,7 +471,6 @@ class IconManagerWindow(QMainWindow):
             QMessageBox.warning(self, "No Selection", "Please select icons to export.")
             return
 
-        # Ask for destination folder
         folder = QFileDialog.getExistingDirectory(
             self, "Select Export Folder", self._get_browse_dir()
         )
@@ -1202,9 +478,8 @@ class IconManagerWindow(QMainWindow):
             return
 
         export_path = Path(folder)
-        self._update_browse_dir(export_path / "dummy")  # Update browse dir
+        self._update_browse_dir(export_path / "dummy")
 
-        # Create manifest mapping exported names to original paths
         manifest = {
             "description": "Icon export manifest - maps exported filenames to original paths",
             "project_root": str(PROJECT_ROOT),
@@ -1223,8 +498,6 @@ class IconManagerWindow(QMainWindow):
             progress.setValue(i)
             QApplication.processEvents()
 
-            # Create a unique filename using path components
-            # e.g., "android_mipmap-hdpi_ic_launcher.png"
             rel_parts = Path(target.rel_path).parts
             safe_name = "_".join(rel_parts).replace("\\", "_").replace("/", "_")
             if not safe_name.endswith(".png"):
@@ -1241,7 +514,6 @@ class IconManagerWindow(QMainWindow):
 
         progress.setValue(len(selected))
 
-        # Save manifest
         manifest_path = export_path / "manifest.json"
         with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
@@ -1264,7 +536,6 @@ class IconManagerWindow(QMainWindow):
             QMessageBox.warning(self, "No Selection", "Please select icons to export.")
             return
 
-        # Check that all selected have either default SVG or override
         missing = [t for t in selected if not t.override_path and not self.svg_input.svg_renderer]
         if missing:
             QMessageBox.warning(self, "Missing Source",
@@ -1272,7 +543,6 @@ class IconManagerWindow(QMainWindow):
                 "Please set a default SVG or assign overrides to all selected icons.")
             return
 
-        # Ask for destination folder
         folder = QFileDialog.getExistingDirectory(
             self, "Select Export Folder", self._get_browse_dir()
         )
@@ -1282,7 +552,6 @@ class IconManagerWindow(QMainWindow):
         export_path = Path(folder)
         self._update_browse_dir(export_path / "dummy")
 
-        # Create manifest
         manifest = {
             "description": "Icon export manifest - maps exported filenames to original paths",
             "project_root": str(PROJECT_ROOT),
@@ -1294,7 +563,6 @@ class IconManagerWindow(QMainWindow):
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
 
-        # Cache SVG bounds
         svg_cache: dict[Path, tuple[QSvgRenderer, IconBounds]] = {}
 
         def get_svg_data(svg_path: Path) -> tuple[QSvgRenderer, IconBounds]:
@@ -1315,7 +583,6 @@ class IconManagerWindow(QMainWindow):
             progress.setLabelText(f"Generating {target.name}...")
             QApplication.processEvents()
 
-            # Create unique filename
             rel_parts = Path(target.rel_path).parts
             safe_name = "_".join(rel_parts).replace("\\", "_").replace("/", "_")
             if not safe_name.endswith(".png"):
@@ -1324,7 +591,6 @@ class IconManagerWindow(QMainWindow):
             dest_file = export_path / safe_name
 
             try:
-                # Generate the icon
                 if target.override_is_png:
                     source = QImage(str(target.override_path))
                     image = render_png_to_bounds(source, target)
@@ -1343,7 +609,6 @@ class IconManagerWindow(QMainWindow):
 
         progress.setValue(len(selected))
 
-        # Save manifest
         manifest_path = export_path / "manifest.json"
         with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
@@ -1379,7 +644,6 @@ class IconManagerWindow(QMainWindow):
 
         try:
             with zipfile.ZipFile(zip_path, 'r') as zf:
-                # Find and read manifest
                 manifest_data = None
                 manifest_name = None
 
@@ -1402,12 +666,10 @@ class IconManagerWindow(QMainWindow):
                     QMessageBox.warning(self, "Empty Manifest", "No icons found in manifest.")
                     return
 
-                # Get the prefix path (folder name inside ZIP if any)
                 prefix = ""
                 if manifest_name and "/" in manifest_name:
                     prefix = manifest_name.rsplit("/", 1)[0] + "/"
 
-                # Preview what will be imported
                 found_icons = []
                 for exported_name, rel_path in icons_map.items():
                     zip_name = prefix + exported_name
@@ -1428,7 +690,6 @@ class IconManagerWindow(QMainWindow):
                 if reply != QMessageBox.StandardButton.Yes:
                     return
 
-                # Import the icons
                 progress = QProgressDialog("Importing icons...", "Cancel", 0, len(found_icons), self)
                 progress.setWindowModality(Qt.WindowModality.WindowModal)
                 progress.setMinimumDuration(0)
@@ -1444,7 +705,6 @@ class IconManagerWindow(QMainWindow):
                     QApplication.processEvents()
 
                     try:
-                        # Extract to target location
                         target_path.parent.mkdir(parents=True, exist_ok=True)
                         with zf.open(zip_name) as src, open(target_path, 'wb') as dst:
                             dst.write(src.read())
@@ -1519,7 +779,6 @@ class IconManagerWindow(QMainWindow):
             QMessageBox.warning(self, "No Targets", "Please select at least one target icon.")
             return
 
-        # Check that all selected have either default SVG or override
         missing = [t for t in selected if not t.override_path and not self.svg_input.svg_renderer]
         if missing:
             QMessageBox.warning(self, "Missing Source",
@@ -1548,7 +807,6 @@ class IconManagerWindow(QMainWindow):
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
 
-        # Cache SVG bounds for each unique SVG
         svg_cache: dict[Path, tuple[QSvgRenderer, IconBounds]] = {}
 
         def get_svg_data(svg_path: Path) -> tuple[QSvgRenderer, IconBounds]:
@@ -1569,12 +827,10 @@ class IconManagerWindow(QMainWindow):
             QApplication.processEvents()
 
             try:
-                # Check if target has a PNG override
                 if target.override_is_png:
                     source = QImage(str(target.override_path))
                     image = render_png_to_bounds(source, target)
                 else:
-                    # Get SVG (override or default)
                     svg_path = target.override_path or self.svg_input.svg_path
                     renderer, svg_bounds = get_svg_data(svg_path)
                     image = render_svg_cropped(renderer, target, svg_bounds)
@@ -1610,22 +866,3 @@ class IconManagerWindow(QMainWindow):
             )
 
         self.status_label.setText(f"Generated {len(selected) - len(errors)}/{len(selected)} icons")
-
-
-# ============================================================================
-# Main
-# ============================================================================
-
-def main():
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    app.setStyleSheet(Theme.get_stylesheet())
-
-    window = IconManagerWindow()
-    window.show()
-
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()
