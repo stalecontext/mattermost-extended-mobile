@@ -80,9 +80,10 @@ For manual touch-ups (e.g., in Photoshop/GIMP):
 Click "Save Config" to save:
 - Default SVG path
 - All override assignments
+- Enabled/disabled state for each icon
 - Last browsed directory
 
-Configuration is saved to `tools/icon_manager_config.json`.
+Configuration is saved to `tools/icon_manager/icon_manager_config.json`.
 
 ## Icon Locations
 

@@ -15,8 +15,8 @@ IOS_ASSETS_DIR = PROJECT_ROOT / "ios" / "Mattermost" / "Images.xcassets" / "AppI
 ASSETS_ANDROID_DIR = PROJECT_ROOT / "assets" / "base" / "release" / "icons" / "android"
 ASSETS_IOS_DIR = PROJECT_ROOT / "assets" / "base" / "release" / "icons" / "ios"
 
-# Config file
-CONFIG_PATH = TOOLS_DIR / "icon_manager_config.json"
+# Config file (in the same folder as main.py)
+CONFIG_PATH = PACKAGE_DIR / "icon_manager_config.json"
 
 # Android mipmap size mappings
 MIPMAP_SIZES = {

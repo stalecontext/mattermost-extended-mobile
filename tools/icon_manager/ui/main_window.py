@@ -338,8 +338,18 @@ class IconManagerWindow(QMainWindow):
                 self.comparison.set_svg(self.svg_input.svg_renderer, self.svg_input.svg_bounds)
                 self.generate_btn.setEnabled(True)
 
+        disabled_set = set(self.config.disabled)
+
         for i, target in enumerate(self.targets):
             rel_path = target.rel_path
+
+            # Apply disabled state
+            if rel_path in disabled_set:
+                widget = self.table.cellWidget(i, self.COL_CHECK)
+                if widget:
+                    widget.findChild(QCheckBox).setChecked(False)
+
+            # Apply overrides
             if rel_path in self.config.overrides:
                 override_path = Path(self.config.overrides[rel_path])
                 if override_path.exists():
@@ -456,10 +466,16 @@ class IconManagerWindow(QMainWindow):
     def _save_config(self):
         self.config.default_svg = str(self.svg_input.svg_path) if self.svg_input.svg_path else None
         self.config.overrides = {}
+        self.config.disabled = []
 
-        for target in self.targets:
+        for row, target in enumerate(self.targets):
             if target.override_path:
                 self.config.overrides[target.rel_path] = str(target.override_path)
+
+            # Save disabled state (unchecked rows)
+            widget = self.table.cellWidget(row, self.COL_CHECK)
+            if widget and not widget.findChild(QCheckBox).isChecked():
+                self.config.disabled.append(target.rel_path)
 
         self.config.save(CONFIG_PATH)
         self.status_label.setText(f"Config saved to {CONFIG_PATH.name}")

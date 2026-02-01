@@ -62,6 +62,7 @@ class Config:
     """Saved configuration with SVG/PNG overrides."""
     default_svg: Optional[str] = None
     overrides: dict[str, str] = field(default_factory=dict)  # rel_path -> override_path
+    disabled: list[str] = field(default_factory=list)  # rel_paths of disabled (unchecked) icons
     last_browse_dir: Optional[str] = None  # Remember last browsed folder
 
     def save(self, path: Path) -> None:
@@ -69,6 +70,7 @@ class Config:
         data = {
             "default_svg": self.default_svg,
             "overrides": self.overrides,
+            "disabled": self.disabled,
             "last_browse_dir": self.last_browse_dir
         }
         with open(path, "w") as f:
@@ -85,6 +87,7 @@ class Config:
             return cls(
                 default_svg=data.get("default_svg"),
                 overrides=data.get("overrides", {}),
+                disabled=data.get("disabled", []),
                 last_browse_dir=data.get("last_browse_dir")
             )
         except (json.JSONDecodeError, KeyError):
