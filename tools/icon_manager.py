@@ -433,11 +433,37 @@ class IconPreviewLabel(QLabel):
     def __init__(self, size: int = 96, parent=None):
         super().__init__(parent)
         self.preview_size = size
+        self.current_path: Optional[Path] = None
         self.setFixedSize(size, size)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
         self._set_placeholder()
 
+    def _show_context_menu(self, pos):
+        if not self.current_path or not self.current_path.exists():
+            return
+        menu = QMenu(self)
+        open_folder = QAction("Open Containing Folder", self)
+        open_folder.triggered.connect(self._open_containing_folder)
+        menu.addAction(open_folder)
+        menu.exec(self.mapToGlobal(pos))
+
+    def _open_containing_folder(self):
+        import subprocess
+        import sys
+        if not self.current_path or not self.current_path.exists():
+            return
+        folder = self.current_path.parent
+        if sys.platform == "win32":
+            subprocess.run(["explorer", "/select,", str(self.current_path)])
+        elif sys.platform == "darwin":
+            subprocess.run(["open", "-R", str(self.current_path)])
+        else:
+            subprocess.run(["xdg-open", str(folder)])
+
     def _set_placeholder(self):
+        self.current_path = None
         self.setText("—")
         self.setStyleSheet(f"""
             QLabel {{
@@ -451,9 +477,11 @@ class IconPreviewLabel(QLabel):
 
     def set_image(self, path: Optional[Path] = None, image: Optional[QImage] = None):
         if path is None and image is None:
+            self.current_path = None
             self._set_placeholder()
             return
 
+        self.current_path = Path(path) if path else None
         bg = create_checkerboard(self.preview_size, self.preview_size, 8)
         img = QImage(str(path)) if path else image
 
@@ -475,6 +503,7 @@ class IconPreviewLabel(QLabel):
             self._set_placeholder()
             return
 
+        self.current_path = None  # SVG preview has no file path
         bg = create_checkerboard(self.preview_size, self.preview_size, 8)
         image = QImage(self.preview_size, self.preview_size, QImage.Format.Format_ARGB32)
         image.fill(Qt.GlobalColor.transparent)
