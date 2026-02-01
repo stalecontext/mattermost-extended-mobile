@@ -6,6 +6,8 @@ Converts SVG files to PNG icons at various resolutions for Android and iOS.
 
 import sys
 import json
+import zipfile
+import shutil
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional
@@ -828,6 +830,30 @@ class IconManagerWindow(QMainWindow):
 
         right_panel.addLayout(override_row)
 
+        # Export/Import row
+        export_row = QHBoxLayout()
+
+        self.export_btn = QPushButton("Export Current...")
+        self.export_btn.setProperty("secondary", True)
+        self.export_btn.clicked.connect(self._export_icons)
+        self.export_btn.setToolTip("Export current icons as-is for manual editing")
+        export_row.addWidget(self.export_btn)
+
+        self.export_generated_btn = QPushButton("Export Generated...")
+        self.export_generated_btn.setProperty("secondary", True)
+        self.export_generated_btn.clicked.connect(self._export_generated_icons)
+        self.export_generated_btn.setToolTip("Generate icons from SVG and export for manual touch-ups")
+        export_row.addWidget(self.export_generated_btn)
+
+        self.import_btn = QPushButton("Import from ZIP...")
+        self.import_btn.setProperty("secondary", True)
+        self.import_btn.clicked.connect(self._import_icons)
+        self.import_btn.setToolTip("Import edited icons from a ZIP file")
+        export_row.addWidget(self.import_btn)
+
+        export_row.addStretch()
+        right_panel.addLayout(export_row)
+
         # Bottom actions
         actions = QHBoxLayout()
         self.status_label = QLabel("Ready")
@@ -1118,6 +1144,301 @@ class IconManagerWindow(QMainWindow):
 
         self.config.save(CONFIG_PATH)
         self.status_label.setText(f"Config saved to {CONFIG_PATH.name}")
+
+    def _export_icons(self):
+        """Export selected icons to a folder for manual editing."""
+        selected = self._get_selected_targets()
+        if not selected:
+            QMessageBox.warning(self, "No Selection", "Please select icons to export.")
+            return
+
+        # Ask for destination folder
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select Export Folder", self._get_browse_dir()
+        )
+        if not folder:
+            return
+
+        export_path = Path(folder)
+        self._update_browse_dir(export_path / "dummy")  # Update browse dir
+
+        # Create manifest mapping exported names to original paths
+        manifest = {
+            "description": "Icon export manifest - maps exported filenames to original paths",
+            "project_root": str(PROJECT_ROOT),
+            "icons": {}
+        }
+
+        progress = QProgressDialog("Exporting icons...", "Cancel", 0, len(selected), self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+
+        exported = 0
+        for i, target in enumerate(selected):
+            if progress.wasCanceled():
+                break
+
+            progress.setValue(i)
+            QApplication.processEvents()
+
+            # Create a unique filename using path components
+            # e.g., "android_mipmap-hdpi_ic_launcher.png"
+            rel_parts = Path(target.rel_path).parts
+            safe_name = "_".join(rel_parts).replace("\\", "_").replace("/", "_")
+            if not safe_name.endswith(".png"):
+                safe_name = safe_name.replace(".png", "") + ".png"
+
+            dest_file = export_path / safe_name
+
+            try:
+                shutil.copy2(target.path, dest_file)
+                manifest["icons"][safe_name] = target.rel_path
+                exported += 1
+            except Exception as e:
+                QMessageBox.warning(self, "Export Error", f"Failed to export {target.name}: {e}")
+
+        progress.setValue(len(selected))
+
+        # Save manifest
+        manifest_path = export_path / "manifest.json"
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+        QMessageBox.information(
+            self, "Export Complete",
+            f"Exported {exported} icons to:\n{export_path}\n\n"
+            f"A manifest.json file was created to track original locations.\n\n"
+            "To import edited icons:\n"
+            "1. Edit the PNGs as needed\n"
+            "2. ZIP the folder (including manifest.json)\n"
+            "3. Use 'Import from ZIP...' to restore them"
+        )
+        self.status_label.setText(f"Exported {exported} icons to {export_path.name}")
+
+    def _export_generated_icons(self):
+        """Generate icons from SVG and export to a folder for manual touch-ups."""
+        selected = self._get_selected_targets()
+        if not selected:
+            QMessageBox.warning(self, "No Selection", "Please select icons to export.")
+            return
+
+        # Check that all selected have either default SVG or override
+        missing = [t for t in selected if not t.override_path and not self.svg_input.svg_renderer]
+        if missing:
+            QMessageBox.warning(self, "Missing Source",
+                f"{len(missing)} icons have no source (no default SVG or override).\n\n"
+                "Please set a default SVG or assign overrides to all selected icons.")
+            return
+
+        # Ask for destination folder
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select Export Folder", self._get_browse_dir()
+        )
+        if not folder:
+            return
+
+        export_path = Path(folder)
+        self._update_browse_dir(export_path / "dummy")
+
+        # Create manifest
+        manifest = {
+            "description": "Icon export manifest - maps exported filenames to original paths",
+            "project_root": str(PROJECT_ROOT),
+            "generated": True,
+            "icons": {}
+        }
+
+        progress = QProgressDialog("Generating and exporting icons...", "Cancel", 0, len(selected), self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+
+        # Cache SVG bounds
+        svg_cache: dict[Path, tuple[QSvgRenderer, IconBounds]] = {}
+
+        def get_svg_data(svg_path: Path) -> tuple[QSvgRenderer, IconBounds]:
+            if svg_path not in svg_cache:
+                renderer = QSvgRenderer(str(svg_path))
+                bounds = get_svg_content_bounds(renderer)
+                svg_cache[svg_path] = (renderer, bounds)
+            return svg_cache[svg_path]
+
+        exported = 0
+        errors = []
+
+        for i, target in enumerate(selected):
+            if progress.wasCanceled():
+                break
+
+            progress.setValue(i)
+            progress.setLabelText(f"Generating {target.name}...")
+            QApplication.processEvents()
+
+            # Create unique filename
+            rel_parts = Path(target.rel_path).parts
+            safe_name = "_".join(rel_parts).replace("\\", "_").replace("/", "_")
+            if not safe_name.endswith(".png"):
+                safe_name = safe_name.replace(".png", "") + ".png"
+
+            dest_file = export_path / safe_name
+
+            try:
+                # Generate the icon
+                if target.override_is_png:
+                    source = QImage(str(target.override_path))
+                    image = render_png_to_bounds(source, target)
+                else:
+                    svg_path = target.override_path or self.svg_input.svg_path
+                    renderer, svg_bounds = get_svg_data(svg_path)
+                    image = render_svg_cropped(renderer, target, svg_bounds)
+
+                if not image.save(str(dest_file), "PNG"):
+                    errors.append(f"Failed to save: {target.name}")
+                else:
+                    manifest["icons"][safe_name] = target.rel_path
+                    exported += 1
+            except Exception as e:
+                errors.append(f"{target.name}: {e}")
+
+        progress.setValue(len(selected))
+
+        # Save manifest
+        manifest_path = export_path / "manifest.json"
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+        if errors:
+            QMessageBox.warning(
+                self, "Export Completed with Errors",
+                f"Exported {exported}/{len(selected)} icons.\n\nErrors:\n" + "\n".join(errors[:10])
+            )
+        else:
+            QMessageBox.information(
+                self, "Export Complete",
+                f"Generated and exported {exported} icons to:\n{export_path}\n\n"
+                "These are the SVG-generated versions ready for touch-ups.\n\n"
+                "To import after editing:\n"
+                "1. Edit the PNGs as needed\n"
+                "2. ZIP the folder (including manifest.json)\n"
+                "3. Use 'Import from ZIP...' to apply them"
+            )
+
+        self.status_label.setText(f"Generated and exported {exported} icons")
+
+    def _import_icons(self):
+        """Import icons from a ZIP file using the manifest."""
+        zip_path, _ = QFileDialog.getOpenFileName(
+            self, "Select ZIP File", self._get_browse_dir(),
+            "ZIP Files (*.zip);;All Files (*)"
+        )
+        if not zip_path:
+            return
+
+        self._update_browse_dir(Path(zip_path))
+
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                # Find and read manifest
+                manifest_data = None
+                manifest_name = None
+
+                for name in zf.namelist():
+                    if name.endswith("manifest.json"):
+                        manifest_name = name
+                        manifest_data = json.loads(zf.read(name).decode('utf-8'))
+                        break
+
+                if not manifest_data:
+                    QMessageBox.warning(
+                        self, "Invalid ZIP",
+                        "No manifest.json found in ZIP file.\n\n"
+                        "The ZIP must contain the manifest.json from the export."
+                    )
+                    return
+
+                icons_map = manifest_data.get("icons", {})
+                if not icons_map:
+                    QMessageBox.warning(self, "Empty Manifest", "No icons found in manifest.")
+                    return
+
+                # Get the prefix path (folder name inside ZIP if any)
+                prefix = ""
+                if manifest_name and "/" in manifest_name:
+                    prefix = manifest_name.rsplit("/", 1)[0] + "/"
+
+                # Preview what will be imported
+                found_icons = []
+                for exported_name, rel_path in icons_map.items():
+                    zip_name = prefix + exported_name
+                    if zip_name in zf.namelist():
+                        target_path = PROJECT_ROOT / rel_path
+                        found_icons.append((zip_name, target_path, rel_path))
+
+                if not found_icons:
+                    QMessageBox.warning(self, "No Icons", "No matching icon files found in ZIP.")
+                    return
+
+                reply = QMessageBox.question(
+                    self, "Confirm Import",
+                    f"This will replace {len(found_icons)} icon files with versions from the ZIP.\n\n"
+                    "This cannot be undone. Continue?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply != QMessageBox.StandardButton.Yes:
+                    return
+
+                # Import the icons
+                progress = QProgressDialog("Importing icons...", "Cancel", 0, len(found_icons), self)
+                progress.setWindowModality(Qt.WindowModality.WindowModal)
+                progress.setMinimumDuration(0)
+
+                imported = 0
+                errors = []
+
+                for i, (zip_name, target_path, rel_path) in enumerate(found_icons):
+                    if progress.wasCanceled():
+                        break
+
+                    progress.setValue(i)
+                    QApplication.processEvents()
+
+                    try:
+                        # Extract to target location
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+                        with zf.open(zip_name) as src, open(target_path, 'wb') as dst:
+                            dst.write(src.read())
+                        imported += 1
+                    except Exception as e:
+                        errors.append(f"{rel_path}: {e}")
+
+                progress.setValue(len(found_icons))
+
+                # Refresh table previews
+                for row in range(self.table.rowCount()):
+                    idx = self.table.item(row, self.COL_NAME).data(Qt.ItemDataRole.UserRole)
+                    if idx is not None:
+                        target = self.targets[idx]
+                        preview = load_icon_preview(target.path, 40)
+                        self.table.item(row, self.COL_PREVIEW).setIcon(QIcon(preview))
+
+                self.comparison.set_current(None)
+
+                if errors:
+                    QMessageBox.warning(
+                        self, "Import Completed with Errors",
+                        f"Imported {imported}/{len(found_icons)} icons.\n\nErrors:\n" + "\n".join(errors[:10])
+                    )
+                else:
+                    QMessageBox.information(
+                        self, "Import Complete",
+                        f"Successfully imported {imported} icons!"
+                    )
+
+                self.status_label.setText(f"Imported {imported} icons from ZIP")
+
+        except zipfile.BadZipFile:
+            QMessageBox.warning(self, "Invalid ZIP", "The selected file is not a valid ZIP archive.")
+        except Exception as e:
+            QMessageBox.warning(self, "Import Error", f"Failed to import: {e}")
 
     def _select_all(self):
         for row in range(self.table.rowCount()):
