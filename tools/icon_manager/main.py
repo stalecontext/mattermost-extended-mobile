@@ -11,10 +11,19 @@ Usage:
 """
 
 import sys
-from PyQt6.QtWidgets import QApplication
+from pathlib import Path
 
-from core import Theme
-from ui import IconManagerWindow
+# Add parent directory to path so we can import icon_manager as a package
+package_dir = Path(__file__).parent
+tools_dir = package_dir.parent
+if str(tools_dir) not in sys.path:
+    sys.path.insert(0, str(tools_dir))
+
+# Now import from the package
+from icon_manager.core import Theme
+from icon_manager.ui import IconManagerWindow
+
+from PyQt6.QtWidgets import QApplication
 
 
 def main():
