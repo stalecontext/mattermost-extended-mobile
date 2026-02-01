@@ -28,6 +28,18 @@ from ..rendering import (
     render_svg_cropped, render_png_to_bounds,
 )
 from .widgets import SvgInputWidget, ComparisonWidget
+from .icons import get_icon
+
+
+class NumericTableWidgetItem(QTableWidgetItem):
+    """Table widget item that sorts numerically based on UserRole data."""
+
+    def __lt__(self, other: QTableWidgetItem) -> bool:
+        my_value = self.data(Qt.ItemDataRole.UserRole)
+        other_value = other.data(Qt.ItemDataRole.UserRole)
+        if my_value is not None and other_value is not None:
+            return my_value < other_value
+        return super().__lt__(other)
 
 
 class IconManagerWindow(QMainWindow):
@@ -89,12 +101,16 @@ class IconManagerWindow(QMainWindow):
         select_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         header.addWidget(select_label)
 
-        for text, slot in [("All", self._select_all), ("None", self._select_none),
-                           ("Android", lambda: self._select_category("android")),
-                           ("iOS", lambda: self._select_category("ios"))]:
-            btn = QPushButton(text)
+        select_buttons = [
+            ("All", "select_all", self._select_all, 65),
+            ("None", "select_none", self._select_none, 70),
+            ("Android", "android", lambda: self._select_category("android"), 90),
+            ("iOS", "ios", lambda: self._select_category("ios"), 65),
+        ]
+        for text, icon_name, slot, width in select_buttons:
+            btn = QPushButton(get_icon(icon_name, 14), text)
             btn.setProperty("secondary", True)
-            btn.setFixedWidth(70 if text == "Android" else 50)
+            btn.setFixedWidth(width)
             btn.clicked.connect(slot)
             header.addWidget(btn)
 
@@ -111,6 +127,8 @@ class IconManagerWindow(QMainWindow):
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
         self.table.itemSelectionChanged.connect(self._on_selection_changed)
+        self.table.setSortingEnabled(True)
+        self.table.sortByColumn(self.COL_PATH, Qt.SortOrder.AscendingOrder)
 
         # Column widths
         header_view = self.table.horizontalHeader()
@@ -130,13 +148,13 @@ class IconManagerWindow(QMainWindow):
 
         # Override buttons
         override_row = QHBoxLayout()
-        self.set_override_btn = QPushButton("Set Override...")
+        self.set_override_btn = QPushButton(get_icon("set_override", 16), "Set Override...")
         self.set_override_btn.setProperty("secondary", True)
         self.set_override_btn.clicked.connect(self._set_override)
         self.set_override_btn.setToolTip("Assign a specific SVG or PNG to selected icons")
         override_row.addWidget(self.set_override_btn)
 
-        self.clear_override_btn = QPushButton("Clear Override")
+        self.clear_override_btn = QPushButton(get_icon("clear_override", 16), "Clear Override")
         self.clear_override_btn.setProperty("secondary", True)
         self.clear_override_btn.clicked.connect(self._clear_override)
         self.clear_override_btn.setToolTip("Remove override, use default SVG")
@@ -144,7 +162,7 @@ class IconManagerWindow(QMainWindow):
 
         override_row.addStretch()
 
-        self.save_config_btn = QPushButton("Save Config")
+        self.save_config_btn = QPushButton(get_icon("save", 16), "Save Config")
         self.save_config_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {COLORS['success']};
@@ -161,19 +179,19 @@ class IconManagerWindow(QMainWindow):
         # Export/Import row
         export_row = QHBoxLayout()
 
-        self.export_btn = QPushButton("Export Current...")
+        self.export_btn = QPushButton(get_icon("export", 16), "Export Current...")
         self.export_btn.setProperty("secondary", True)
         self.export_btn.clicked.connect(self._export_icons)
         self.export_btn.setToolTip("Export current icons as-is for manual editing")
         export_row.addWidget(self.export_btn)
 
-        self.export_generated_btn = QPushButton("Export Generated...")
+        self.export_generated_btn = QPushButton(get_icon("export_generated", 16), "Export Generated...")
         self.export_generated_btn.setProperty("secondary", True)
         self.export_generated_btn.clicked.connect(self._export_generated_icons)
         self.export_generated_btn.setToolTip("Generate icons from SVG and export for manual touch-ups")
         export_row.addWidget(self.export_generated_btn)
 
-        self.import_btn = QPushButton("Import from ZIP...")
+        self.import_btn = QPushButton(get_icon("import", 16), "Import from ZIP...")
         self.import_btn.setProperty("secondary", True)
         self.import_btn.clicked.connect(self._import_icons)
         self.import_btn.setToolTip("Import edited icons from a ZIP file")
@@ -188,7 +206,7 @@ class IconManagerWindow(QMainWindow):
         self.status_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         actions.addWidget(self.status_label, 1)
 
-        self.generate_btn = QPushButton("Generate && Replace Selected Icons")
+        self.generate_btn = QPushButton(get_icon("generate", 18), "Generate && Replace Selected Icons")
         self.generate_btn.setEnabled(False)
         self.generate_btn.setStyleSheet(f"""
             QPushButton {{
@@ -310,8 +328,10 @@ class IconManagerWindow(QMainWindow):
         name_item.setData(Qt.ItemDataRole.UserRole, len(self.targets) - 1)
         self.table.setItem(row, self.COL_NAME, name_item)
 
-        # Size
-        size_item = QTableWidgetItem(f"{size}×{size}")
+        # Size (use NumericTableWidgetItem for proper numeric sorting)
+        size_item = NumericTableWidgetItem()
+        size_item.setText(f"{size}×{size}")
+        size_item.setData(Qt.ItemDataRole.UserRole, size)
         size_item.setFlags(size_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.table.setItem(row, self.COL_SIZE, size_item)
 
@@ -340,12 +360,17 @@ class IconManagerWindow(QMainWindow):
 
         disabled_set = set(self.config.disabled)
 
-        for i, target in enumerate(self.targets):
+        # Iterate over table rows (handles sorting)
+        for row in range(self.table.rowCount()):
+            idx = self.table.item(row, self.COL_NAME).data(Qt.ItemDataRole.UserRole)
+            if idx is None:
+                continue
+            target = self.targets[idx]
             rel_path = target.rel_path
 
             # Apply disabled state
             if rel_path in disabled_set:
-                widget = self.table.cellWidget(i, self.COL_CHECK)
+                widget = self.table.cellWidget(row, self.COL_CHECK)
                 if widget:
                     widget.findChild(QCheckBox).setChecked(False)
 
@@ -354,9 +379,9 @@ class IconManagerWindow(QMainWindow):
                 override_path = Path(self.config.overrides[rel_path])
                 if override_path.exists():
                     target.override_path = override_path
-                    self.table.item(i, self.COL_OVERRIDE).setText(override_path.name)
-                    self.table.item(i, self.COL_OVERRIDE).setForeground(QColor(COLORS['primary_light']))
-                    self.table.item(i, self.COL_OVERRIDE).setToolTip(str(override_path))
+                    self.table.item(row, self.COL_OVERRIDE).setText(override_path.name)
+                    self.table.item(row, self.COL_OVERRIDE).setForeground(QColor(COLORS['primary_light']))
+                    self.table.item(row, self.COL_OVERRIDE).setToolTip(str(override_path))
 
     def _on_selection_changed(self):
         rows = self.table.selectionModel().selectedRows()
@@ -468,7 +493,13 @@ class IconManagerWindow(QMainWindow):
         self.config.overrides = {}
         self.config.disabled = []
 
-        for row, target in enumerate(self.targets):
+        # Iterate over table rows to get current sort order
+        for row in range(self.table.rowCount()):
+            idx = self.table.item(row, self.COL_NAME).data(Qt.ItemDataRole.UserRole)
+            if idx is None:
+                continue
+            target = self.targets[idx]
+
             if target.override_path:
                 self.config.overrides[target.rel_path] = str(target.override_path)
 

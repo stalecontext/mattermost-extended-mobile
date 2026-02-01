@@ -20,6 +20,7 @@ from ..rendering import (
     render_svg_cropped,
     render_png_to_bounds,
 )
+from .icons import get_icon
 
 
 class IconPreviewLabel(QLabel):
@@ -295,7 +296,7 @@ class SvgInputWidget(QGroupBox):
         self.bounds_label.setStyleSheet(f"color: {COLORS['text_disabled']}; font-size: 8pt;")
         layout.addWidget(self.bounds_label)
 
-        self.browse_btn = QPushButton("Browse SVG...")
+        self.browse_btn = QPushButton(get_icon("browse", 16), "Browse SVG...")
         layout.addWidget(self.browse_btn)
 
         layout.addStretch()
