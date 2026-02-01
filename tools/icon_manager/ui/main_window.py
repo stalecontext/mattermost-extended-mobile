@@ -431,8 +431,8 @@ class IconManagerWindow(QMainWindow):
                 self.table.item(row, self.COL_OVERRIDE).setForeground(QColor(COLORS['primary_light']))
                 self.table.item(row, self.COL_OVERRIDE).setToolTip(str(override_path))
 
-        # Update preview if current target was affected
-        self.comparison._update_new_preview()
+        # Refresh the preview (including info label)
+        self._on_selection_changed()
         self.status_label.setText(f"Set override for {len(rows)} icon(s)")
 
     def _clear_override(self):
@@ -449,8 +449,8 @@ class IconManagerWindow(QMainWindow):
                 self.table.item(row, self.COL_OVERRIDE).setForeground(QColor(COLORS['text_disabled']))
                 self.table.item(row, self.COL_OVERRIDE).setToolTip("")
 
-        # Update preview if current target was affected
-        self.comparison._update_new_preview()
+        # Refresh the preview (including info label)
+        self._on_selection_changed()
         self.status_label.setText(f"Cleared override for {len(rows)} icon(s)")
 
     def _save_config(self):

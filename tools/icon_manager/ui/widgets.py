@@ -67,8 +67,14 @@ class IconPreviewLabel(QLabel):
             }}
         """)
 
-    def set_from_qimage(self, image: QImage, path: Optional[Path] = None):
-        """Display a QImage on checkerboard background, preserving aspect ratio."""
+    def set_from_qimage(self, image: QImage, path: Optional[Path] = None, fill: bool = True):
+        """Display a QImage on checkerboard background.
+
+        Args:
+            image: The image to display
+            path: Optional file path for context menu
+            fill: If True, scale to fill container. If False, preserve aspect ratio.
+        """
         if image.isNull():
             self._set_placeholder()
             return
@@ -76,28 +82,34 @@ class IconPreviewLabel(QLabel):
         self.current_path = path
         bg = create_checkerboard(self.preview_size, self.preview_size, 8)
 
-        # Scale while preserving aspect ratio
-        scaled = image.scaled(self.preview_size, self.preview_size,
-                              Qt.AspectRatioMode.KeepAspectRatio,
-                              Qt.TransformationMode.SmoothTransformation)
+        if fill:
+            # Scale to fill the entire container (icons should be square)
+            scaled = image.scaled(self.preview_size, self.preview_size,
+                                  Qt.AspectRatioMode.IgnoreAspectRatio,
+                                  Qt.TransformationMode.SmoothTransformation)
+            x, y = 0, 0
+        else:
+            # Scale while preserving aspect ratio
+            scaled = image.scaled(self.preview_size, self.preview_size,
+                                  Qt.AspectRatioMode.KeepAspectRatio,
+                                  Qt.TransformationMode.SmoothTransformation)
+            x = (self.preview_size - scaled.width()) // 2
+            y = (self.preview_size - scaled.height()) // 2
 
-        # Center on checkerboard
         painter = QPainter(bg)
-        x = (self.preview_size - scaled.width()) // 2
-        y = (self.preview_size - scaled.height()) // 2
         painter.drawImage(x, y, scaled)
         painter.end()
 
         self.setPixmap(bg)
         self.setStyleSheet(f"QLabel {{ border: 1px solid {COLORS['border']}; border-radius: 8px; }}")
 
-    def set_from_path(self, path: Path):
+    def set_from_path(self, path: Path, fill: bool = True):
         """Load and display an image from a file path."""
         if not path.exists():
             self._set_placeholder()
             return
         image = QImage(str(path))
-        self.set_from_qimage(image, path)
+        self.set_from_qimage(image, path, fill=fill)
 
     def clear(self):
         """Clear the preview and show placeholder."""
@@ -119,7 +131,7 @@ class ComparisonWidget(QGroupBox):
         compare_layout = QHBoxLayout()
         compare_layout.setSpacing(16)
 
-        # Current icon
+        # Current icon (always shows disk file)
         current_col = QVBoxLayout()
         current_col.setSpacing(4)
         current_label = QLabel("Current")
@@ -135,14 +147,14 @@ class ComparisonWidget(QGroupBox):
         arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
         compare_layout.addWidget(arrow)
 
-        # New icon
+        # New/Override icon
         new_col = QVBoxLayout()
         new_col.setSpacing(4)
-        new_label = QLabel("New")
-        new_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        new_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 9pt;")
+        self.new_label = QLabel("New")
+        self.new_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.new_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 9pt;")
         self.new_preview = IconPreviewLabel(96)
-        new_col.addWidget(new_label)
+        new_col.addWidget(self.new_label)
         new_col.addWidget(self.new_preview, alignment=Qt.AlignmentFlag.AlignCenter)
         compare_layout.addLayout(new_col)
 
@@ -194,17 +206,24 @@ class ComparisonWidget(QGroupBox):
         return render_svg_to_size(self.svg_renderer, self.new_preview.preview_size, self.svg_bounds)
 
     def _update_new_preview(self):
-        """Update the 'New' preview to show what the generated output will look like."""
+        """Update the 'New/Override' preview to show what the generated output will look like."""
         target = self.current_target
 
         if target is None:
             # No target selected - show default SVG preview (cropped)
+            self.new_label.setText("New")
             image = self._render_default_svg_preview()
             if image:
                 self.new_preview.set_from_qimage(image)
             else:
                 self.new_preview.clear()
             return
+
+        # Update label based on whether override is set
+        if target.override_path:
+            self.new_label.setText("Override")
+        else:
+            self.new_label.setText("New")
 
         # Render using the same logic as actual generation
         image = self._render_preview_image(target)
@@ -220,11 +239,18 @@ class ComparisonWidget(QGroupBox):
         if target is None:
             self.current_preview.clear()
             self.new_preview.clear()
+            self.new_label.setText("New")
             self.info_label.setText("Select an icon to preview")
             return
 
-        # Show current icon from disk
+        # Left side: always show current disk file
         self.current_preview.set_from_path(target.path)
+
+        # Right side: update label based on whether override is set
+        if target.override_path:
+            self.new_label.setText("Override")
+        else:
+            self.new_label.setText("New")
 
         # Show what the new icon will look like
         self._update_new_preview()
