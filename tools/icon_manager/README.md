@@ -93,19 +93,39 @@ The **Adaptive Icons** tab provides a dedicated interface for replacing Android 
 ### Features
 - **Density previews** - See current icons for all densities (mdpi through xxxhdpi)
 - **Separate layers** - Replace foreground, background, or notification icons independently
-- **Automatic scaling** - Source PNG is scaled to each density's required size
+- **PNG or SVG sources** - Use either PNG or SVG files as source (SVG is rendered at each density)
+- **Per-density overrides** - Override specific densities with custom files
+- **Automatic scaling** - Source is scaled/rendered to each density's required size
+- **Context menus** - Right-click previews to open folder/file or copy path
 
-### Workflow
+### Basic Workflow
 1. Switch to the **"Adaptive Icons"** tab
-2. In the desired section (Foreground, Background, or Notification), click **"Select PNG..."**
-3. Choose a high-resolution PNG (432×432 for adaptive layers, 192×192 for notification)
+2. In the desired section (Foreground, Background, or Notification):
+   - Click **"Select PNG..."** to use a PNG source, OR
+   - Click **"Select SVG..."** to use an SVG source
+3. Choose a high-resolution source (432×432 for adaptive layers, 192×192 for notification)
 4. Review the current icons in the preview area
 5. Click **"Replace All"** to replace across all densities
 
-### When to Use
-- You have pre-made foreground/background/notification PNGs (not SVGs)
+### Per-Density Overrides
+For fine-grained control, you can override specific densities with custom files:
+
+1. Click **"▶ Per-Density Overrides"** to expand the override section
+2. For each density you want to customize, click **"Set Override..."**
+3. Select a PNG or SVG file for that specific density
+4. The override path appears next to the density name
+5. Click **"Clear"** to remove an override and use the default source
+
+This is useful when:
+- Lower densities need a simplified version of the icon
+- You have pre-made PNGs at specific sizes
+- The SVG needs adjustments at certain densities
+
+### When to Use the Adaptive Icons Tab
+- You have pre-made foreground/background/notification files
 - You want to replace layers without going through the full SVG conversion workflow
 - You need to update just one layer while keeping the others
+- You want per-density control over icon files
 
 ### Target Files
 - **Foreground**: `ic_launcher_foreground.png` - The icon artwork with transparency

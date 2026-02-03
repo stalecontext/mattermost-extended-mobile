@@ -7,11 +7,15 @@ with PNG previews for each density.
 
 from pathlib import Path
 
+import os
+import subprocess
+import sys
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QLabel, QFileDialog, QMessageBox,
     QGroupBox, QScrollArea, QFrame, QApplication,
-    QProgressDialog, QLineEdit, QColorDialog,
+    QProgressDialog, QLineEdit, QColorDialog, QMenu,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor
@@ -20,10 +24,15 @@ import re
 
 from ..core import (
     COLORS, ADAPTIVE_ICON_SIZES, MIPMAP_SIZES, ANDROID_RES_DIR, ASSETS_ANDROID_DIR,
-    PROJECT_ROOT, replace_layer, get_layer_preview, get_layer_targets, get_layer_sizes,
+    PROJECT_ROOT, replace_layer, replace_layer_from_svg, replace_layer_with_overrides,
+    get_layer_preview, get_layer_targets, get_layer_sizes,
 )
 from ..rendering import create_checkerboard
 from .icons import get_icon
+
+# Source type enumeration
+SOURCE_TYPE_PNG = "png"
+SOURCE_TYPE_SVG = "svg"
 
 
 class DensityPreview(QFrame):
@@ -33,6 +42,7 @@ class DensityPreview(QFrame):
         super().__init__(parent)
         self.density = density
         self.size = size
+        self.current_path: Path | None = None
         self.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Sunken)
         self.setStyleSheet(f"""
             QFrame {{
@@ -41,6 +51,8 @@ class DensityPreview(QFrame):
                 border-radius: 4px;
             }}
         """)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(4)
@@ -69,6 +81,7 @@ class DensityPreview(QFrame):
 
     def set_preview(self, path: Path | None):
         """Set the preview image from a file path."""
+        self.current_path = path
         preview_size = 72
         checkerboard = create_checkerboard(preview_size, preview_size, 8)
 
@@ -87,6 +100,52 @@ class DensityPreview(QFrame):
                 painter.end()
 
         self.preview_label.setPixmap(checkerboard)
+
+    def _show_context_menu(self, pos):
+        """Show context menu with folder options."""
+        if not self.current_path:
+            return
+
+        menu = QMenu(self)
+
+        open_folder_action = menu.addAction("Open Folder")
+        open_folder_action.triggered.connect(self._open_folder)
+
+        open_file_action = menu.addAction("Open File")
+        open_file_action.triggered.connect(self._open_file)
+
+        menu.addSeparator()
+
+        copy_path_action = menu.addAction("Copy Path")
+        copy_path_action.triggered.connect(self._copy_path)
+
+        menu.exec(self.mapToGlobal(pos))
+
+    def _open_folder(self):
+        """Open the folder containing the icon file."""
+        if self.current_path and self.current_path.exists():
+            folder = self.current_path.parent
+            if sys.platform == 'win32':
+                os.startfile(folder)
+            elif sys.platform == 'darwin':
+                subprocess.run(['open', folder])
+            else:
+                subprocess.run(['xdg-open', folder])
+
+    def _open_file(self):
+        """Open the icon file with default application."""
+        if self.current_path and self.current_path.exists():
+            if sys.platform == 'win32':
+                os.startfile(self.current_path)
+            elif sys.platform == 'darwin':
+                subprocess.run(['open', self.current_path])
+            else:
+                subprocess.run(['xdg-open', self.current_path])
+
+    def _copy_path(self):
+        """Copy the file path to clipboard."""
+        if self.current_path:
+            QApplication.clipboard().setText(str(self.current_path))
 
 
 class LayerGroup(QGroupBox):
@@ -148,7 +207,7 @@ class LayerGroup(QGroupBox):
 
         # Source section
         source_layout = QHBoxLayout()
-        source_label = QLabel("Source PNG:")
+        source_label = QLabel("Source:")
         source_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         source_layout.addWidget(source_label)
 
@@ -156,17 +215,100 @@ class LayerGroup(QGroupBox):
         self.source_path_label.setStyleSheet(f"color: {COLORS['text_disabled']}; font-style: italic;")
         source_layout.addWidget(self.source_path_label, 1)
 
-        self.browse_btn = QPushButton(get_icon("browse", 14), "Select PNG...")
-        self.browse_btn.setProperty("secondary", True)
-        self.browse_btn.setFixedWidth(120)
-        source_layout.addWidget(self.browse_btn)
+        self.browse_png_btn = QPushButton(get_icon("browse", 14), "Select PNG...")
+        self.browse_png_btn.setProperty("secondary", True)
+        self.browse_png_btn.setFixedWidth(110)
+        source_layout.addWidget(self.browse_png_btn)
 
-        self.replace_btn = QPushButton(get_icon("generate", 14), "Replace All")
+        self.browse_svg_btn = QPushButton(get_icon("browse", 14), "Select SVG...")
+        self.browse_svg_btn.setProperty("secondary", True)
+        self.browse_svg_btn.setFixedWidth(110)
+        source_layout.addWidget(self.browse_svg_btn)
+
+        self.replace_btn = QPushButton("Replace All")
         self.replace_btn.setEnabled(False)
-        self.replace_btn.setFixedWidth(100)
+        self.replace_btn.setMinimumWidth(100)
+        self.replace_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['primary_light']};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['primary_hover']};
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['border']};
+                color: {COLORS['text_disabled']};
+            }}
+        """)
         source_layout.addWidget(self.replace_btn)
 
         layout.addLayout(source_layout)
+
+        # Per-density overrides section (collapsible)
+        self.overrides_toggle = QPushButton("▶ Per-Density Overrides")
+        self.overrides_toggle.setCheckable(True)
+        self.overrides_toggle.setChecked(False)
+        self.overrides_toggle.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: {COLORS['text_secondary']};
+                text-align: left;
+                padding: 4px 0;
+                font-size: 10pt;
+            }}
+            QPushButton:hover {{
+                color: {COLORS['primary_light']};
+            }}
+        """)
+        self.overrides_toggle.clicked.connect(self._toggle_overrides)
+        layout.addWidget(self.overrides_toggle)
+
+        # Overrides container (hidden by default)
+        self.overrides_container = QWidget()
+        self.overrides_container.setVisible(False)
+        overrides_layout = QGridLayout(self.overrides_container)
+        overrides_layout.setSpacing(8)
+        overrides_layout.setContentsMargins(20, 8, 0, 8)
+
+        self.density_overrides: dict[str, tuple[QLabel, QPushButton, QPushButton]] = {}
+        row = 0
+        for density, size in self.sizes.items():
+            # Density name
+            density_name = density.replace("mipmap-", "")
+            density_label = QLabel(f"{density_name} ({size}×{size}):")
+            density_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+            overrides_layout.addWidget(density_label, row, 0)
+
+            # Override path/status
+            override_label = QLabel("(using default)")
+            override_label.setStyleSheet(f"color: {COLORS['text_disabled']}; font-style: italic;")
+            overrides_layout.addWidget(override_label, row, 1)
+
+            # Set override button
+            set_btn = QPushButton("Set Override...")
+            set_btn.setProperty("secondary", True)
+            set_btn.setFixedWidth(110)
+            set_btn.clicked.connect(lambda checked, d=density: self._set_density_override(d))
+            overrides_layout.addWidget(set_btn, row, 2)
+
+            # Clear override button
+            clear_btn = QPushButton("Clear")
+            clear_btn.setProperty("secondary", True)
+            clear_btn.setFixedWidth(60)
+            clear_btn.setEnabled(False)
+            clear_btn.clicked.connect(lambda checked, d=density: self._clear_density_override(d))
+            overrides_layout.addWidget(clear_btn, row, 3)
+
+            self.density_overrides[density] = (override_label, set_btn, clear_btn)
+            row += 1
+
+        layout.addWidget(self.overrides_container)
 
         # Previews section
         preview_section = QHBoxLayout()
@@ -201,8 +343,50 @@ class LayerGroup(QGroupBox):
 
         layout.addLayout(preview_section)
 
-        # Store source path
+        # Store source info
         self.source_path: Path | None = None
+        self.source_type: str = SOURCE_TYPE_PNG
+        self.override_paths: dict[str, Path] = {}
+
+        # Keep browse_btn for backwards compatibility (used in main tab connection)
+        self.browse_btn = self.browse_png_btn
+
+    def _toggle_overrides(self):
+        """Toggle visibility of per-density overrides section."""
+        visible = self.overrides_toggle.isChecked()
+        self.overrides_container.setVisible(visible)
+        self.overrides_toggle.setText(f"{'▼' if visible else '▶'} Per-Density Overrides")
+
+    def _set_density_override(self, density: str):
+        """Set an override for a specific density."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, f"Select Override for {density}",
+            str(Path.home()),
+            "Image Files (*.png *.svg);;PNG Files (*.png);;SVG Files (*.svg);;All Files (*)"
+        )
+        if not path:
+            return
+
+        override_path = Path(path)
+        self.override_paths[density] = override_path
+
+        # Update UI
+        label, _, clear_btn = self.density_overrides[density]
+        label.setText(override_path.name)
+        label.setStyleSheet(f"color: {COLORS['primary_light']};")
+        label.setToolTip(str(override_path))
+        clear_btn.setEnabled(True)
+
+    def _clear_density_override(self, density: str):
+        """Clear the override for a specific density."""
+        if density in self.override_paths:
+            del self.override_paths[density]
+
+        label, _, clear_btn = self.density_overrides[density]
+        label.setText("(using default)")
+        label.setStyleSheet(f"color: {COLORS['text_disabled']}; font-style: italic;")
+        label.setToolTip("")
+        clear_btn.setEnabled(False)
 
     def refresh_previews(self):
         """Refresh all preview images from disk."""
@@ -213,13 +397,19 @@ class LayerGroup(QGroupBox):
             path = target_map.get(density)
             preview.set_preview(path)
 
-    def set_source(self, path: Path):
-        """Set the source PNG path."""
+    def set_source(self, path: Path, source_type: str = SOURCE_TYPE_PNG):
+        """Set the source file path and type."""
         self.source_path = path
-        self.source_path_label.setText(path.name)
+        self.source_type = source_type
+        ext = path.suffix.upper()
+        self.source_path_label.setText(f"{path.name} ({ext})")
         self.source_path_label.setStyleSheet(f"color: {COLORS['primary_light']};")
         self.source_path_label.setToolTip(str(path))
         self.replace_btn.setEnabled(True)
+
+    def has_overrides(self) -> bool:
+        """Check if any per-density overrides are set."""
+        return len(self.override_paths) > 0
 
 
 class AdaptiveIconTab(QWidget):
@@ -262,19 +452,22 @@ class AdaptiveIconTab(QWidget):
 
         # Foreground group
         self.fg_group = LayerGroup("foreground")
-        self.fg_group.browse_btn.clicked.connect(lambda: self._browse_source("foreground"))
+        self.fg_group.browse_png_btn.clicked.connect(lambda: self._browse_source("foreground", SOURCE_TYPE_PNG))
+        self.fg_group.browse_svg_btn.clicked.connect(lambda: self._browse_source("foreground", SOURCE_TYPE_SVG))
         self.fg_group.replace_btn.clicked.connect(lambda: self._replace_layer("foreground"))
         scroll_layout.addWidget(self.fg_group)
 
         # Background group
         self.bg_group = LayerGroup("background")
-        self.bg_group.browse_btn.clicked.connect(lambda: self._browse_source("background"))
+        self.bg_group.browse_png_btn.clicked.connect(lambda: self._browse_source("background", SOURCE_TYPE_PNG))
+        self.bg_group.browse_svg_btn.clicked.connect(lambda: self._browse_source("background", SOURCE_TYPE_SVG))
         self.bg_group.replace_btn.clicked.connect(lambda: self._replace_layer("background"))
         scroll_layout.addWidget(self.bg_group)
 
         # Notification icon group
         self.notif_group = LayerGroup("notification")
-        self.notif_group.browse_btn.clicked.connect(lambda: self._browse_source("notification"))
+        self.notif_group.browse_png_btn.clicked.connect(lambda: self._browse_source("notification", SOURCE_TYPE_PNG))
+        self.notif_group.browse_svg_btn.clicked.connect(lambda: self._browse_source("notification", SOURCE_TYPE_SVG))
         self.notif_group.replace_btn.clicked.connect(lambda: self._replace_layer("notification"))
         scroll_layout.addWidget(self.notif_group)
 
@@ -394,14 +587,21 @@ class AdaptiveIconTab(QWidget):
         else:
             return self.notif_group
 
-    def _browse_source(self, layer: str):
-        """Browse for a source PNG file."""
+    def _browse_source(self, layer: str, source_type: str = SOURCE_TYPE_PNG):
+        """Browse for a source file (PNG or SVG)."""
         group = self._get_group(layer)
 
+        if source_type == SOURCE_TYPE_SVG:
+            file_filter = "SVG Files (*.svg);;All Files (*)"
+            type_name = "SVG"
+        else:
+            file_filter = "PNG Files (*.png);;All Files (*)"
+            type_name = "PNG"
+
         path, _ = QFileDialog.getOpenFileName(
-            self, f"Select {layer.title()} PNG",
+            self, f"Select {layer.title()} {type_name}",
             self._get_browse_dir(),
-            "PNG Files (*.png);;All Files (*)"
+            file_filter
         )
         if not path:
             return
@@ -409,21 +609,37 @@ class AdaptiveIconTab(QWidget):
         source_path = Path(path)
         self._last_browse_dir = str(source_path.parent)
 
-        # Validate
-        img = QImage(str(source_path))
-        if img.isNull():
-            QMessageBox.warning(self, "Invalid PNG", "Could not load the selected PNG file.")
-            return
+        # Validate based on source type
+        if source_type == SOURCE_TYPE_SVG:
+            try:
+                from PyQt6.QtCore import QByteArray
+                from PyQt6.QtSvg import QSvgRenderer
+                with open(source_path, 'rb') as f:
+                    svg_data = f.read()
+                renderer = QSvgRenderer(QByteArray(svg_data))
+                if not renderer.isValid():
+                    QMessageBox.warning(self, "Invalid SVG", "Could not parse the selected SVG file.")
+                    return
+                size_info = f"{renderer.defaultSize().width()}×{renderer.defaultSize().height()}"
+            except Exception as e:
+                QMessageBox.warning(self, "Invalid SVG", f"Could not load the selected SVG file:\n{e}")
+                return
+        else:
+            img = QImage(str(source_path))
+            if img.isNull():
+                QMessageBox.warning(self, "Invalid PNG", "Could not load the selected PNG file.")
+                return
+            size_info = f"{img.width()}×{img.height()}"
 
-        group.set_source(source_path)
-        self.status_label.setText(f"Selected {layer}: {source_path.name} ({img.width()}×{img.height()})")
+        group.set_source(source_path, source_type)
+        self.status_label.setText(f"Selected {layer}: {source_path.name} ({size_info})")
 
     def _replace_layer(self, layer: str):
         """Replace a layer across all densities."""
         group = self._get_group(layer)
 
         if not group.source_path:
-            QMessageBox.warning(self, "No Source", "Please select a source PNG first.")
+            QMessageBox.warning(self, "No Source", "Please select a source file first.")
             return
 
         # Get the filename based on layer type
@@ -434,14 +650,19 @@ class AdaptiveIconTab(QWidget):
             filename = f"ic_launcher_{layer}.png"
             title = f"Replace {layer.title()} Layer"
 
-        # Confirm
-        img = QImage(str(group.source_path))
+        # Build confirmation message
+        source_type = group.source_type.upper()
+        overrides_info = ""
+        if group.has_overrides():
+            override_count = len(group.override_paths)
+            overrides_info = f"\n\nPer-density overrides: {override_count} configured"
+
         reply = QMessageBox.question(
             self, title,
             f"This will replace {filename} in all mipmap density folders:\n\n"
             f"  • android/app/src/main/res/mipmap-*/\n"
             f"  • assets/base/release/icons/android/mipmap-*/\n\n"
-            f"Source: {group.source_path.name} ({img.width()}×{img.height()})\n\n"
+            f"Source: {group.source_path.name} ({source_type}){overrides_info}\n\n"
             "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -455,7 +676,21 @@ class AdaptiveIconTab(QWidget):
         progress.show()
         QApplication.processEvents()
 
-        success, errors = replace_layer(group.source_path, layer)
+        # Choose the appropriate replacement function
+        if group.has_overrides():
+            # Use the override-aware function
+            success, errors = replace_layer_with_overrides(
+                group.source_path,
+                layer,
+                overrides=group.override_paths,
+                is_svg=(group.source_type == SOURCE_TYPE_SVG)
+            )
+        elif group.source_type == SOURCE_TYPE_SVG:
+            # Use SVG-specific function
+            success, errors = replace_layer_from_svg(group.source_path, layer)
+        else:
+            # Use standard PNG replacement
+            success, errors = replace_layer(group.source_path, layer)
 
         progress.close()
 
