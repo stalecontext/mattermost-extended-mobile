@@ -93,6 +93,17 @@ Replaces the default iOS edge-swipe navigation with Discord-style swipe gestures
 
 **Path alias:** `@swipe_navigation/*` → `app/products/swipe_navigation/*`
 
+#### Encryption Feature Flag Support
+Mobile support for the server-side `Encryption` feature flag and key management APIs. Enables end-to-end encryption capabilities including key registration, status tracking, and fetching channel member keys.
+
+**New files:**
+- `app/products/encryption/` - Types, constants, client, store, actions
+- `app/products/encryption/client/rest.ts` - ClientMix for encryption API
+- `app/products/encryption/store/encryption_store.ts` - Ephemeral state with React hooks
+- `app/products/encryption/actions/remote.ts` - API actions (status, keys, registration)
+
+**Path alias:** `@encryption/*` → `app/products/encryption/*`
+
 ---
 
 ## Important Development Notes

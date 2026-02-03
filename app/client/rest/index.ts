@@ -5,6 +5,7 @@ import ClientAgents, {type ClientAgentsMix} from '@agents/client/rest';
 import ClientChannelSync, {type ClientChannelSyncMix} from '@channel_sync/client/rest';
 import ClientEmojiCategorizer, {type ClientEmojiCategorizerMix} from '@emoji_categorizer/client/rest';
 import ClientEmojiUsage, {type ClientEmojiUsageMix} from '@emoji_usage/client/rest';
+import ClientEncryption, {type ClientEncryptionMix} from '@encryption/client/rest';
 import ClientMemberList, {type ClientMemberListMix} from '@member_list/client/rest';
 import ClientReadReceipts, {type ClientReadReceiptsMix} from '@read_receipts/client/rest';
 
@@ -45,6 +46,7 @@ interface Client extends ClientBase,
     ClientChannelSyncMix,
     ClientEmojiCategorizerMix,
     ClientEmojiUsageMix,
+    ClientEncryptionMix,
     ClientEmojisMix,
     ClientFilesMix,
     ClientGeneralMix,
@@ -78,6 +80,7 @@ class Client extends mix(ClientBase).with(
     ClientChannelSync,
     ClientEmojiCategorizer,
     ClientEmojiUsage,
+    ClientEncryption,
     ClientEmojis,
     ClientFiles,
     ClientGeneral,

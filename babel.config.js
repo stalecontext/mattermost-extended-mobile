@@ -22,6 +22,7 @@ module.exports = {
                 '@discord_replies': './app/products/discord_replies',
                 '@emoji_categorizer': './app/products/emoji_categorizer',
                 '@emoji_usage': './app/products/emoji_usage',
+                '@encryption': './app/products/encryption',
                 '@read_receipts': './app/products/read_receipts',
                 '@swipe_navigation': './app/products/swipe_navigation',
                 '@client': './app/client',

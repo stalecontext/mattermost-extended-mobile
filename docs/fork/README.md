@@ -11,10 +11,17 @@ Allows users to select multiple posts (up to 10) to quote-reply to in a single m
 
 **Status:** Implemented
 
-### Channel Sync Plugin Support
-Mobile support for the `com.example.channel-sync` server plugin that syncs sidebar categories from a Site Admin to all users, with Quick Join channels shown inline.
+### Discord-Style Swipe Navigation
+Replaces the default iOS edge-swipe navigation with Discord-style swipe gestures on phones. Swipe right to slide the channel away and reveal the channel list underneath. Swipe left to open a member panel showing online/offline channel members.
 
-**Documentation:** [channel-sync.md](./channel-sync.md)
+**Documentation:** [swipe-navigation.md](./swipe-navigation.md)
+
+**Status:** Implemented
+
+### AI Agents (mattermost-ai) Support
+Full mobile UI for interacting with LLM-powered AI agents. Supports streaming responses with animated cursor, expandable reasoning/thinking displays, tool call approvals (Accept/Reject/Edit), citations and annotations, and Stop/Regenerate controls.
+
+**Documentation:** [agents.md](./agents.md)
 
 **Status:** Implemented
 
@@ -25,6 +32,13 @@ Mobile support for the `com.github.mattermost-read-receipts` server plugin that 
 
 **Status:** Implemented
 
+### Channel Sync Plugin Support
+Mobile support for the `com.example.channel-sync` server plugin that syncs sidebar categories from a Site Admin to all users, with Quick Join channels shown inline.
+
+**Documentation:** [channel-sync.md](./channel-sync.md)
+
+**Status:** Implemented
+
 ### Emoji Categorizer Plugin Support
 Mobile support for the `com.github.mattermost-emoji-categorizer` server plugin that organizes custom emojis into collaborative categories. Categories appear in the emoji picker after "Recently Used" with custom emoji icons in the category bar.
 
@@ -32,10 +46,24 @@ Mobile support for the `com.github.mattermost-emoji-categorizer` server plugin t
 
 **Status:** Implemented
 
-### Discord-Style Swipe Navigation
-Replaces the default iOS edge-swipe navigation with Discord-style swipe gestures on phones. Swipe right to slide the channel away and reveal the channel list underneath. Swipe left to open a member panel showing online/offline channel members.
+### Emoji Usage Tracker Plugin Support
+Mobile support for the `com.github.mattermost-emoji-usage` server plugin that tracks emoji usage frequency. Adds a sync button to the emoji picker that populates "Recently Used" based on actual usage history.
 
-**Documentation:** [swipe-navigation.md](./swipe-navigation.md)
+**Documentation:** [emoji-usage.md](./emoji-usage.md)
+
+**Status:** Implemented
+
+### Member List Plugin Support
+Mobile support for the `com.github.mattermost-member-list` server plugin for efficient channel member fetching. Used to power the member panel in swipe navigation.
+
+**Documentation:** [member-list.md](./member-list.md)
+
+**Status:** Implemented
+
+### Encryption Feature Flag Support
+Mobile support for the server-side `Encryption` feature flag and key management APIs. Enables end-to-end encryption capabilities including key registration, status tracking, and fetching channel member keys.
+
+**Documentation:** [encryption.md](./encryption.md)
 
 **Status:** Implemented
 
