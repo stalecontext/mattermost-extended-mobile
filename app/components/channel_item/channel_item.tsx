@@ -142,6 +142,7 @@ const ChannelItem = ({
     }
 
     const deleteAt = 'deleteAt' in channel ? channel.deleteAt : channel.delete_at;
+    const customIcon = channel.props?.custom_icon;
     const channelItemTestId = `${testID}.${channel.name}`;
 
     const height = useMemo(() => {
@@ -193,6 +194,7 @@ const ChannelItem = ({
                 testID={channelItemTestId}
             >
                 <ChannelIcon
+                    customIcon={customIcon}
                     hasDraft={hasDraft}
                     isActive={isTablet && isActive}
                     isOnCenterBg={isOnCenterBg}

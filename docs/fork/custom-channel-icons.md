@@ -25,9 +25,14 @@ app/products/custom_channel_icons/
 ├── store/
 │   ├── index.ts
 │   └── custom_channel_icons_store.ts  # Ephemeral store with RxJS
-└── actions/
-    ├── remote.ts         # API actions
-    └── websocket.ts      # WebSocket event handlers
+├── actions/
+│   ├── remote.ts         # API actions
+│   └── websocket.ts      # WebSocket event handlers
+└── icon_libraries/
+    ├── index.ts          # Re-exports
+    ├── types.ts          # Icon format types and parseIconValue
+    ├── mdi_icons.ts      # Material Design Icons path lookup
+    └── svg_utils.ts      # SVG processing utilities
 ```
 
 ### Path Alias
@@ -69,6 +74,8 @@ type CustomChannelIconPatch = {
     svg?: string;
     normalize_color?: boolean;
 };
+
+type IconFormat = 'mdi' | 'lucide' | 'tabler' | 'feather' | 'simple' | 'fontawesome' | 'svg' | 'customsvg' | 'none';
 ```
 
 ## WebSocket Events
@@ -124,8 +131,37 @@ if (isCustomChannelIconEvent(event)) {
 ## Channel Icon Storage
 
 Channels store their custom icon in the `props.custom_icon` field using a prefixed format:
-- `mdi:icon-name` - Material Design Icons
-- `lucide:icon-name` - Lucide icons
-- `svg:base64content` - Custom SVG (base64-encoded)
+- `mdi:icon-name` - Material Design Icons (fully supported)
+- `lucide:icon-name` - Lucide icons (TODO: not yet implemented)
+- `tabler:icon-name` - Tabler icons (TODO: not yet implemented)
+- `feather:icon-name` - Feather icons (TODO: not yet implemented)
+- `simple:icon-name` - Simple (brand) icons (TODO: not yet implemented)
+- `fontawesome:icon-name` - Font Awesome icons (TODO: not yet implemented)
+- `svg:base64content` - Custom SVG (base64-encoded, fully supported)
+- `customsvg:id` - Server-stored custom SVG (fully supported)
 
 This format is compatible with the web app implementation.
+
+## Icon Rendering
+
+Custom icons are rendered in the sidebar via the `ChannelIcon` component:
+
+1. **Channel props sync**: The `props` field (containing `custom_icon`) is synced to the database via the channel transformer
+2. **ChannelItem extracts icon**: The `custom_icon` value is extracted from `channel.props?.custom_icon`
+3. **ChannelIcon renders**: If a custom icon is present (and channel is not archived/draft/shared), it renders via `CustomChannelIcon`
+4. **CustomChannelIcon parses format**: Uses `parseIconValue` to determine the icon format
+5. **Format-specific rendering**:
+   - MDI icons: Uses `@mdi/js` to get SVG path data
+   - Custom SVGs: Decodes base64, sanitizes, and renders via `react-native-svg`
+   - Server icons: Fetches from `CustomChannelIconsStore` and renders
+
+## Database Changes
+
+The `Channel` model now includes a `props` field (JSON) to store channel properties including `custom_icon`.
+
+Schema version: 18 (migration adds `props` column to Channel table)
+
+## Dependencies
+
+- `@mdi/js` - Material Design Icons path data (~7400 icons)
+- `react-native-svg` - SVG rendering (already in project)

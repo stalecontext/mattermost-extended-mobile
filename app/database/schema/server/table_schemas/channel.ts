@@ -22,5 +22,6 @@ export default tableSchema({
         {name: 'update_at', type: 'number'},
         {name: 'banner_info', type: 'string', isOptional: true},
         {name: 'abac_policy_enforced', type: 'boolean', isOptional: true},
+        {name: 'props', type: 'string', isOptional: true},
     ],
 });

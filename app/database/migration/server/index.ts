@@ -26,6 +26,17 @@ const {PLAYBOOK_RUN, PLAYBOOK_CHECKLIST, PLAYBOOK_CHECKLIST_ITEM, PLAYBOOK_RUN_A
 
 export default schemaMigrations({migrations: [
     {
+        toVersion: 18,
+        steps: [
+            addColumns({
+                table: CHANNEL,
+                columns: [
+                    {name: 'props', type: 'string', isOptional: true},
+                ],
+            }),
+        ],
+    },
+    {
         toVersion: 17,
         steps: [
             addColumns({

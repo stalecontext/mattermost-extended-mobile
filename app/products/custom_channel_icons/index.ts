@@ -6,3 +6,4 @@ export * from './types';
 export * from './store';
 export * from './actions/remote';
 export * from './actions/websocket';
+export * from './icon_libraries';

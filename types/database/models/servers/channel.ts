@@ -60,6 +60,9 @@ declare class ChannelModel extends Model {
     /** Whether the channel has Attribute-Based Access Control (ABAC) policy enforcement enabled, controlling access based on user attributes */
     abacPolicyEnforced?: boolean;
 
+    /** props: Channel properties including custom_icon */
+    props?: Record<string, any>;
+
     /** members : Users belonging to this channel */
     members: Query<ChannelMembershipModel>;
 

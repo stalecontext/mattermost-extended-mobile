@@ -10,9 +10,11 @@ import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
+import CustomChannelIcon from './custom_channel_icon';
 import DmAvatar from './dm_avatar';
 
 type ChannelIconProps = {
+    customIcon?: string;
     hasDraft?: boolean;
     isActive?: boolean;
     isArchived?: boolean;
@@ -87,6 +89,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
 });
 
 const ChannelIcon = ({
+    customIcon,
     hasDraft = false, isActive = false, isArchived = false,
     isOnCenterBg = false, isUnread = false, isMuted = false,
     membersCount = 0, name,
@@ -138,6 +141,13 @@ const ChannelIcon = ({
         {fontSize: size},
     ];
 
+    // Check if we should use a custom icon (only for public/private channels, not archived/draft/shared)
+    const canShowCustomIcon = customIcon &&
+        !isArchived &&
+        !hasDraft &&
+        !shared &&
+        (type === General.OPEN_CHANNEL || type === General.PRIVATE_CHANNEL);
+
     let icon = null;
     if (isArchived) {
         icon = (
@@ -172,6 +182,18 @@ const ChannelIcon = ({
                     {left: 0.5},
                 ]}
                 testID={sharedTestID}
+            />
+        );
+    } else if (canShowCustomIcon) {
+        icon = (
+            <CustomChannelIcon
+                customIcon={customIcon}
+                size={size}
+                style={commonStyles}
+                isActive={isActive}
+                isUnread={isUnread && !isMuted}
+                isMuted={isMuted}
+                isOnCenterBg={isOnCenterBg}
             />
         );
     } else if (type === General.OPEN_CHANNEL) {
