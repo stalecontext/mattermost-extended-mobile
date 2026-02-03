@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@formatjs/intl-datetimeformat": "6.18.0",
-    "@mdi/js": "7.4.47",
     "@formatjs/intl-getcanonicallocales": "2.5.5",
     "@formatjs/intl-listformat": "7.7.11",
     "@formatjs/intl-locale": "4.2.11",
@@ -31,6 +30,7 @@
     "@mattermost/rnshare": "file:./libraries/@mattermost/rnshare",
     "@mattermost/rnutils": "file:./libraries/@mattermost/rnutils",
     "@mattermost/secure-pdf-viewer": "file:./libraries/@mattermost/secure-pdf-viewer",
+    "@mdi/js": "7.4.47",
     "@msgpack/msgpack": "3.1.1",
     "@nozbe/watermelondb": "0.28.1-0",
     "@react-native-camera-roll/camera-roll": "7.10.0",
@@ -55,6 +55,7 @@
     "deep-equal": "2.2.3",
     "deepmerge": "4.3.1",
     "emoji-regex": "10.4.0",
+    "events": "3.3.0",
     "expo": "52.0.47",
     "expo-application": "6.0.2",
     "expo-crypto": "14.0.2",
