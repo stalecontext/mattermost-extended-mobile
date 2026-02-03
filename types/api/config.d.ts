@@ -128,6 +128,7 @@ interface ClientConfig {
     FeatureFlagCustomProfileAttributes?: string;
     FeatureFlagInteractiveDialogAppsForm?: string;
     FeatureFlagEncryption?: string;
+    FeatureFlagCustomChannelIcons?: string;
     ForgotPasswordLink?: string;
     GfycatApiKey: string;
     GfycatApiSecret: string;

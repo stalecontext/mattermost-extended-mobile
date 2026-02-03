@@ -19,6 +19,7 @@ module.exports = {
                 '@assets': './dist/assets/',
                 '@calls': './app/products/calls',
                 '@channel_sync': './app/products/channel_sync',
+                '@custom_channel_icons': './app/products/custom_channel_icons',
                 '@discord_replies': './app/products/discord_replies',
                 '@emoji_categorizer': './app/products/emoji_categorizer',
                 '@emoji_usage': './app/products/emoji_usage',
