@@ -2,7 +2,7 @@
 Adaptive icon layer replacement utilities.
 
 This module handles copying source PNGs to all Android mipmap density folders
-for adaptive icon foreground and background layers.
+for adaptive icon foreground and background layers, and notification icons.
 """
 
 from pathlib import Path
@@ -11,15 +11,24 @@ from typing import Literal
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage
 
-from .constants import ADAPTIVE_ICON_SIZES, ANDROID_RES_DIR, ASSETS_ANDROID_DIR
+from .constants import ADAPTIVE_ICON_SIZES, MIPMAP_SIZES, ANDROID_RES_DIR, ASSETS_ANDROID_DIR
 
 
-LayerType = Literal["foreground", "background"]
+LayerType = Literal["foreground", "background", "notification"]
 
 
 def get_layer_filename(layer: LayerType) -> str:
-    """Get the filename for an adaptive icon layer."""
+    """Get the filename for an adaptive icon layer or notification icon."""
+    if layer == "notification":
+        return "ic_notification.png"
     return f"ic_launcher_{layer}.png"
+
+
+def get_layer_sizes(layer: LayerType) -> dict[str, int]:
+    """Get the size mapping for a layer type."""
+    if layer == "notification":
+        return MIPMAP_SIZES  # 48dp base (24dp actual icon)
+    return ADAPTIVE_ICON_SIZES  # 108dp base
 
 
 def get_target_directories() -> list[Path]:
@@ -35,12 +44,13 @@ def get_layer_targets(layer: LayerType) -> list[tuple[Path, int]]:
         List of (path, size) tuples for each mipmap density.
     """
     filename = get_layer_filename(layer)
+    sizes = get_layer_sizes(layer)
     targets = []
 
     for base_dir in get_target_directories():
         if not base_dir.exists():
             continue
-        for mipmap_dir, size in ADAPTIVE_ICON_SIZES.items():
+        for mipmap_dir, size in sizes.items():
             target_path = base_dir / mipmap_dir / filename
             if target_path.parent.exists():
                 targets.append((target_path, size))

@@ -8,7 +8,7 @@ from .constants import (
 )
 from .models import IconBounds, IconTarget, Config
 from .adaptive_icons import (
-    replace_layer, get_layer_targets, get_layer_preview, LayerType,
+    replace_layer, get_layer_targets, get_layer_preview, get_layer_sizes, LayerType,
 )
 
 __all__ = [
@@ -17,5 +17,5 @@ __all__ = [
     'MIPMAP_SIZES', 'ADAPTIVE_ICON_SIZES',
     'ANDROID_ICON_FILES', 'ANDROID_LEGACY_ICONS', 'ANDROID_ADAPTIVE_ICONS',
     'IconBounds', 'IconTarget', 'Config',
-    'replace_layer', 'get_layer_targets', 'get_layer_preview', 'LayerType',
+    'replace_layer', 'get_layer_targets', 'get_layer_preview', 'get_layer_sizes', 'LayerType',
 ]

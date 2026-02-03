@@ -17,7 +17,7 @@ A GUI tool for managing app icons in the Mattermost Mobile project. Converts SVG
 The application has two main tabs:
 
 1. **SVG Conversion** - The main workflow for converting SVG files to PNG icons
-2. **Adaptive Icons** - Dedicated interface for replacing Android adaptive icon layers
+2. **Adaptive Icons** - Dedicated interface for replacing Android adaptive icon layers and notification icons
 
 ## Requirements
 
@@ -88,28 +88,29 @@ For manual touch-ups (e.g., in Photoshop/GIMP):
 
 ## Adaptive Icon Layer Replacement
 
-The **Adaptive Icons** tab provides a dedicated interface for replacing Android adaptive icon layers:
+The **Adaptive Icons** tab provides a dedicated interface for replacing Android adaptive icon layers and notification icons:
 
 ### Features
 - **Density previews** - See current icons for all densities (mdpi through xxxhdpi)
-- **Separate foreground/background** - Replace each layer independently
+- **Separate layers** - Replace foreground, background, or notification icons independently
 - **Automatic scaling** - Source PNG is scaled to each density's required size
 
 ### Workflow
 1. Switch to the **"Adaptive Icons"** tab
-2. In the Foreground or Background section, click **"Select PNG..."**
-3. Choose a high-resolution PNG (432×432 recommended for best quality)
+2. In the desired section (Foreground, Background, or Notification), click **"Select PNG..."**
+3. Choose a high-resolution PNG (432×432 for adaptive layers, 192×192 for notification)
 4. Review the current icons in the preview area
 5. Click **"Replace All"** to replace across all densities
 
 ### When to Use
-- You have pre-made foreground/background PNGs (not SVGs)
+- You have pre-made foreground/background/notification PNGs (not SVGs)
 - You want to replace layers without going through the full SVG conversion workflow
-- You need to update just one layer while keeping the other
+- You need to update just one layer while keeping the others
 
 ### Target Files
 - **Foreground**: `ic_launcher_foreground.png` - The icon artwork with transparency
 - **Background**: `ic_launcher_background.png` - The solid or gradient background
+- **Notification**: `ic_notification.png` - Status bar icon (white silhouette on transparent)
 
 ### Target Directories
 Files are replaced in:
@@ -117,6 +118,8 @@ Files are replaced in:
 - `assets/base/release/icons/android/mipmap-*/`
 
 ### Density Sizes
+
+**Adaptive Icon Layers (108dp base):**
 | Density | Size |
 |---------|------|
 | mdpi | 108×108 |
@@ -124,6 +127,15 @@ Files are replaced in:
 | xhdpi | 216×216 |
 | xxhdpi | 324×324 |
 | xxxhdpi | 432×432 |
+
+**Notification Icons (48dp base, 24dp visible):**
+| Density | Size |
+|---------|------|
+| mdpi | 48×48 |
+| hdpi | 72×72 |
+| xhdpi | 96×96 |
+| xxhdpi | 144×144 |
+| xxxhdpi | 192×192 |
 
 ## Saving Configuration
 
