@@ -1,100 +1,289 @@
-# Mattermost Mobile v2
+<p align="center">
+  <img src="docs/assets/logo-placeholder.png" alt="Mattermost Extended Mobile Logo" width="400">
+</p>
 
-- **Minimum Server versions:** Current ESR version (10.11.0+)
-- **Supported iOS versions:** 16.0+
-- **Supported Android versions:** 7.0+
+<h1 align="center">Mattermost Extended Mobile</h1>
 
-Mattermost is an open source Slack-alternative used by thousands of companies around the world in 21 languages. Learn more at [https://mattermost.com](https://mattermost.com).
+<p align="center">
+  The mobile companion to <a href="https://github.com/stalecontext/mattermost-extended">Mattermost Extended</a>.<br>
+  Discord-style features, plugin integrations, and enhanced UX for iOS and Android.
+</p>
 
-You can download our apps from the [App Store](https://mattermost.com/mattermost-ios-app/) or [Google Play Store](https://mattermost.com/mattermost-android-app/), or [build them yourself](https://developers.mattermost.com/contribute/mobile/build-your-own/). 
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#contributing">Contributing</a>
+</p>
 
-We plan on releasing monthly updates with new features - check the [changelog](https://github.com/mattermost/mattermost-mobile/blob/master/CHANGELOG.md) for what features are currently supported! 
+<p align="center">
+  <img src="https://img.shields.io/badge/base-Mattermost%20Mobile%20v2.25.0-blue" alt="Base Version">
+  <img src="https://img.shields.io/badge/license-Apache%202.0-green" alt="License">
+  <img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey" alt="Platform">
+</p>
 
-**Important:** If you self-compile the Mattermost Mobile apps you also need to deploy your own [Mattermost Push Notification Service](https://github.com/mattermost/mattermost-push-proxy/releases). 
+---
 
-# Android 16KB Page Size Support
+## Overview
 
-**Temporary Requirement:** To comply with Google Play's 16KB page size requirement for Android devices, this project includes a compatibility patch that must be applied before building for Android.
+This is the mobile app for the [Mattermost Extended](https://github.com/stalecontext/mattermost-extended) project. It adds several features to the Mattermost mobile app that aren't available in the upstream version, including Discord-style interactions, plugin integrations, and improved navigation.
 
-### When to Apply the Patch
+<!-- SCREENSHOT: Main chat interface showing Discord-style reply chips and swipe navigation -->
+<p align="center">
+  <img src="docs/assets/screenshot-main-placeholder.png" alt="Mattermost Extended Mobile Interface" width="350">
+</p>
 
-- **CI/CD Builds:** The patch is automatically applied in GitHub Actions for Android builds
-- **Local Development:** If you're building Android locally and encounter 16KB page size related issues, run:
+---
+
+## Features
+
+### Discord-Style Multi-Quote Replies
+
+Quote-reply to multiple posts (up to 10) in a single message, just like Discord.
+
+<!-- SCREENSHOT: Draft composer showing reply chips with avatars, and a sent message with quote previews above it -->
+<p align="center">
+  <img src="docs/assets/screenshot-discord-replies-placeholder.png" alt="Discord-Style Multi-Quote Replies" width="350">
+</p>
+
+- Tap any post to add it to your reply queue
+- Reply chips appear above the composer with remove buttons
+- Sent messages show compact quote previews above the content
+- Works with the companion server plugin for enhanced rendering
+
+---
+
+### Discord-Style Swipe Navigation
+
+Fluid gesture-based navigation that feels like Discord.
+
+<!-- SCREENSHOT: Partially swiped channel view revealing channel list underneath -->
+<p align="center">
+  <img src="docs/assets/screenshot-swipe-nav-placeholder.png" alt="Discord-Style Swipe Navigation" width="350">
+</p>
+
+- **Swipe right**: Slide channel away to reveal the channel list underneath
+- **Swipe left**: Open member panel showing online/offline channel members
+- Channel list stays live and interactive during swipe
+- Respects system reduced motion preferences
+
+---
+
+### Read Receipts Plugin Support
+
+See who has read your messages with the `mattermost-read-receipts` plugin.
+
+<!-- SCREENSHOT: "X following" indicator above message input, and post readers modal with avatars and timestamps -->
+<p align="center">
+  <img src="docs/assets/screenshot-read-receipts-placeholder.png" alt="Read Receipts Plugin Support" width="350">
+</p>
+
+- **Post Readers**: Long-press a post to see who read it with timestamps
+- **Channel Followers**: "X following" indicator shows real-time viewers
+- **User Last Seen**: See what channel a user was last viewing in their profile
+- All features respect server-side permission settings
+
+---
+
+### Channel Sync Plugin Support
+
+Automatic sidebar organization with the `channel-sync` plugin.
+
+<!-- SCREENSHOT: Sidebar showing synced categories with Quick Join channel suggestions inline -->
+<p align="center">
+  <img src="docs/assets/screenshot-channel-sync-placeholder.png" alt="Channel Sync Plugin Support" width="350">
+</p>
+
+- Site Admin's category organization synced to all users
+- Quick Join channels appear inline in categories
+- Join/Dismiss buttons for suggested channels
+- Real-time updates via WebSocket
+
+---
+
+### Emoji Organization
+
+Enhanced emoji management with two plugin integrations.
+
+<!-- SCREENSHOT: Emoji picker showing custom category with emoji icon in category bar -->
+<p align="center">
+  <img src="docs/assets/screenshot-emoji-placeholder.png" alt="Emoji Organization" width="350">
+</p>
+
+**Emoji Categorizer** (`mattermost-emoji-categorizer`):
+- Organize custom emojis into collaborative categories
+- Categories appear after "Recently Used" with emoji icons
+- Real-time sync when categories change
+
+**Emoji Usage Tracker** (`mattermost-emoji-usage`):
+- Sync button in emoji picker header
+- Populates "Recently Used" from actual usage history
+- Scans all message and reaction history
+
+---
+
+## Requirements
+
+- **Server**: [Mattermost Extended](https://github.com/stalecontext/mattermost-extended) or Mattermost Server ESR 10.11.0+
+- **iOS**: 16.0+
+- **Android**: 7.0+
+- **Push Notifications**: Self-compiled apps require your own [Mattermost Push Notification Service](https://github.com/mattermost/mattermost-push-proxy/releases)
+
+---
+
+## Installation
+
+### Building from Source
 
 ```bash
-npm run apply-16kb-pagesize-patch
+# Clone the repository
+git clone https://github.com/stalecontext/mattermost-extended-mobile.git
+cd mattermost-extended-mobile
+
+# Install dependencies (skip Unix-only scripts on Windows)
+npm install --ignore-scripts
+
+# iOS setup (macOS only)
+npm run ios-gems
+npm run pod-install
+
+# Start Metro bundler
+npm start
+
+# Run on device/simulator
+npm run ios       # iOS (macOS only)
+npm run android   # Android
 ```
 
-This script will:
-1. Update package dependencies to compatible versions
-2. Apply necessary code changes for 16KB page size support
-3. Update patch files for modified dependencies
-4. Regenerate `package-lock.json`
+### TestFlight Deployment (iOS)
 
-### ⚠️ Important Warnings
+```bash
+# Full build and deploy (auto-increments build number)
+./scripts/deploy-testflight.sh
 
-- **DO NOT commit the changes** applied by this patch to the repository
-- **These changes will break iOS builds** if committed
-- The patch is designed to be applied only during Android CI builds
-- For local development, revert all changes after building Android
+# Skip setup for faster subsequent builds
+./scripts/deploy-testflight.sh --skip-setup
 
-**Note:** This is a temporary solution until all dependencies natively support 16KB page sizes.
+# Build only without deploying
+./scripts/deploy-testflight.sh --build-only
+```
 
-# How to Contribute
+See [TestFlight Setup](docs/fork/testflight-setup.md) for first-time configuration.
 
-### Testing
+---
 
-To help with testing app updates before they're released, you can:
+## Plugin Compatibility
 
-1. Sign up to be a beta tester
-   - [Android](https://play.google.com/apps/testing/com.mattermost.rnbeta)
-   - [iOS](https://testflight.apple.com/join/Q7Rx7K9P) - Open this link from your iOS device
-2. Install the `Mattermost Beta` app. New updates in the Beta app are released periodically. You will receive a notification when the new updates are available.
-3. File any bugs you find by filing a [GitHub issue](https://github.com/mattermost/mattermost-mobile/issues) with:
-   - Device information
-   - Repro steps
-   - Observed behavior (including screenshot / video when possible)
-   - Expected behavior
-4. (Optional) [Sign up for our team site](https://community.mattermost.com/signup_user_complete/?id=codoy5s743rq5mk18i7u5ksz7e&md=link&sbr=su)
-   - Join the [Native Mobile Apps channel](https://community.mattermost.com/core/channels/native-mobile-apps) to see what's new and discuss feedback with other contributors and the core team
-   
-You can leave the Beta testing program at any time:
-- On Android, [click this link](https://play.google.com/apps/testing/com.mattermost.rnbeta) while logged in with your Google Play email address used to opt-in for the Beta program, then click **Leave the program**. 
-- On iOS, access the `Mattermost Beta` app page in TestFlight and click **Stop Testing**.
+| Plugin | Status | Description |
+|--------|--------|-------------|
+| `mattermost-read-receipts` | Supported | Post readers, channel followers, last seen |
+| `channel-sync` | Supported | Admin-controlled sidebar categories |
+| `mattermost-emoji-categorizer` | Supported | Custom emoji categories |
+| `mattermost-emoji-usage` | Supported | Usage-based recently used emojis |
+| `mattermost-member-list` | Supported | Efficient member fetching for swipe panel |
 
-### Contribute Code 
+All plugins fail gracefully if not installed - features simply don't appear.
 
-1. Look in [GitHub issues](https://mattermost.com/pl/help-wanted-mattermost-mobile) for issues marked as [Help Wanted]
-2. Comment to let people know you’re working on it
-3. Follow [these instructions](https://developers.mattermost.com/contribute/mobile/developer-setup/) to set up your developer environment
-4. Join the [Native Mobile Apps channel](https://community.mattermost.com/core/channels/native-mobile-apps) on our team site to ask questions
+---
 
+## Documentation
 
+| Document | Description |
+|----------|-------------|
+| [Fork Overview](docs/fork/README.md) | Architecture patterns and development notes |
+| [Discord Replies](docs/fork/discord-replies.md) | Multi-quote reply implementation |
+| [Swipe Navigation](docs/fork/swipe-navigation.md) | Discord-style gesture navigation |
+| [Read Receipts](docs/fork/read-receipts.md) | Read receipts plugin integration |
+| [Channel Sync](docs/fork/channel-sync.md) | Channel sync plugin integration |
+| [Emoji Categorizer](docs/fork/emoji-categorizer.md) | Emoji categorizer plugin integration |
+| [Emoji Usage](docs/fork/emoji-usage.md) | Emoji usage tracker integration |
+| [Member List](docs/fork/member-list.md) | Member list plugin integration |
+| [TestFlight Setup](docs/fork/testflight-setup.md) | iOS deployment configuration |
 
-# Frequently Asked Questions
+---
 
-### How is data handled on mobile devices after a user account is deactivated?
+## Project Structure
 
-App data is wiped from the device when a user logs out of the app. If the user is logged in when the account is deactivated, then within one minute the system logs the user out, and as a result all app data is wiped from the device.
+```
+mattermost-mobile/
+├── app/
+│   ├── products/                    # Modular features
+│   │   ├── discord_replies/         # Multi-quote replies
+│   │   ├── swipe_navigation/        # Discord-style navigation
+│   │   ├── channel_sync/            # Channel sync plugin
+│   │   ├── read_receipts/           # Read receipts plugin
+│   │   ├── emoji_categorizer/       # Emoji categorizer plugin
+│   │   ├── emoji_usage/             # Emoji usage tracker
+│   │   └── member_list/             # Member list plugin
+│   │
+│   ├── components/
+│   │   ├── post_draft/
+│   │   │   └── discord_replies_bar/ # Reply chips above composer
+│   │   └── post_list/post/
+│   │       └── discord_reply_preview/ # Quote previews above posts
+│   │
+│   └── store/
+│       └── discord_replies_store.ts # Ephemeral state for replies
+│
+├── docs/fork/                       # Fork-specific documentation
+└── scripts/                         # Build and deployment scripts
+```
 
-### I need the code for the v1 version
+---
 
-You can still access it! We have moved the code from master to the [v1 branch](https://github.com/mattermost/mattermost-mobile/tree/v1). Be aware that we will not be providing any more v1 versions or updates in the public stores.
+## Related Repositories
 
-# Troubleshooting
+| Repository | Description |
+|------------|-------------|
+| [mattermost-extended](https://github.com/stalecontext/mattermost-extended) | Server fork with E2E encryption and more |
+| [mattermost-extended-mobile](https://github.com/stalecontext/mattermost-extended-mobile) | This repository |
+| [mattermost-extended-cloudron-app](https://github.com/stalecontext/mattermost-extended-cloudron-app) | Cloudron packaging |
 
-### I keep getting a message "Cannot connect to the server. Please check your server URL and internet connection."
+---
 
-This sometimes appears when there is an issue with the SSL certificate configuration. 
+## Contributing
 
-To check that your SSL certificate is set up correctly, test the SSL certificate by visiting a site such as https://www.ssllabs.com/ssltest/index.html. If there’s an error about the missing chain or certificate path, there is likely an intermediate certificate missing that needs to be included.
+1. Fork the repository
+2. Create a feature branch
+3. Run checks: `npm run fix && npm run tsc`
+4. Test on device/simulator
+5. Submit a pull request
 
-Please note that the apps cannot connect to servers with self-signed certificates, consider using [Let's Encrypt](https://docs.mattermost.com/install/config-ssl-http2-nginx.html) instead. 
+### Development Notes
 
-### I see a “Connecting…” bar that does not go away
+- **Windows**: Use `npm install --ignore-scripts` to skip Unix scripts
+- **Hot reload**: ~3 seconds for JS/TS changes; native changes require rebuild
+- **Path aliases**: Update both `tsconfig.json` and `babel.config.js`
+- **Localization**: Only edit `assets/base/i18n/en.json`
 
-If your app is working properly, you should see a grey “Connecting…” bar that clears or says “Connected” after the app reconnects. 
+---
 
-If you are seeing this message all the time, and your internet connection seems fine: 
+## Troubleshooting
 
-Ask your server administrator if the server uses NGINX or another webserver as a reverse proxy. If so, they should check that it is configured correctly for [supporting the websocket connection for APIv4 endpoints](https://docs.mattermost.com/install/install-ubuntu-1604.html#configuring-nginx-as-a-proxy-for-mattermost-server). 
+### "Cannot connect to the server"
+
+This usually indicates an SSL certificate issue. Test your certificate at [SSL Labs](https://www.ssllabs.com/ssltest/index.html). Self-signed certificates are not supported.
+
+### "Connecting..." bar doesn't clear
+
+Ensure your server's reverse proxy (NGINX, etc.) is configured correctly for WebSocket connections. See [Mattermost docs](https://docs.mattermost.com/install/install-ubuntu-1604.html#configuring-nginx-as-a-proxy-for-mattermost-server).
+
+### Plugin features not appearing
+
+- Verify the plugin is installed and enabled on the server
+- Check server logs for plugin errors
+- Permissions may restrict visibility (e.g., read receipts)
+
+---
+
+## License
+
+Licensed under the Apache License 2.0, the same terms as Mattermost. See [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <a href="https://github.com/stalecontext/mattermost-extended-mobile">GitHub</a> •
+  <a href="https://github.com/stalecontext/mattermost-extended-mobile/issues">Issues</a> •
+  <a href="https://github.com/stalecontext/mattermost-extended-mobile/releases">Releases</a>
+</p>
