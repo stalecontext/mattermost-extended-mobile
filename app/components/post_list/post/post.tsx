@@ -17,7 +17,7 @@ import CompassIcon from '@components/compass_icon';
 import UnrevealedBurnOnReadPost from '@components/post_list/post/burn_on_read/unrevealed';
 import SystemAvatar from '@components/system_avatar';
 import SystemHeader from '@components/system_header';
-import {POST_TIME_TO_FAIL} from '@constants/post';
+import {POST_TIME_TO_FAIL, PostPriorityType} from '@constants/post';
 import * as Screens from '@constants/screens';
 import {SNACK_BAR_TYPE} from '@constants/snack_bar';
 import {useKeyboardAnimationContext} from '@context/keyboard_animation';
@@ -105,6 +105,9 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
         },
         highlightPinnedOrSaved: {
             backgroundColor: changeOpacity(theme.mentionHighlightBg, 0.2),
+        },
+        highlightEncrypted: {
+            backgroundColor: changeOpacity('#9333EA', 0.08),
         },
         pendingPost: {opacity: 0.5},
         postContent: {paddingHorizontal: 16},
@@ -376,9 +379,13 @@ const Post = ({
     const rightColumnStyle: StyleProp<ViewStyle> = [styles.rightColumn, (Boolean(post.rootId) && isLastReply && styles.rightColumnPadding)];
     const pendingPostStyle: StyleProp<ViewStyle> | undefined = isPendingOrFailed ? styles.pendingPost : undefined;
 
+    const isEncryptedPost = post.metadata?.priority?.priority === PostPriorityType.ENCRYPTED;
+
     let highlightedStyle: StyleProp<ViewStyle>;
     if (highlight) {
         highlightedStyle = styles.highlight;
+    } else if (isEncryptedPost) {
+        highlightedStyle = styles.highlightEncrypted;
     } else if ((highlightSaved || hightlightPinned) && highlightPinnedOrSaved) {
         highlightedStyle = styles.highlightPinnedOrSaved;
     }

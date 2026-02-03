@@ -10,7 +10,9 @@ import FormattedText from '@components/formatted_text';
 import JumboEmoji from '@components/jumbo_emoji';
 import ErrorBoundary from '@components/markdown/error_boundary';
 import {Screens} from '@constants';
+import {PostPriorityType} from '@constants/post';
 import {THREAD} from '@constants/screens';
+import {EncryptedPlaceholder} from '@encryption/components';
 import StatusUpdatePost from '@playbooks/components/status_update_post';
 import {PLAYBOOKS_UPDATE_STATUS_POST_TYPE} from '@playbooks/constants/plugin';
 import {isEdited as postEdited, isPostFailed} from '@utils/post';
@@ -99,6 +101,7 @@ const Body = ({
     const isFailed = isPostFailed(post);
     const [layoutWidth, setLayoutWidth] = useState(0);
     const hasBeenDeleted = Boolean(post.deleteAt);
+    const isEncryptedPost = post.metadata?.priority?.priority === PostPriorityType.ENCRYPTED;
     let body;
     let message;
 
@@ -187,10 +190,18 @@ const Body = ({
     const acknowledgementsVisible = isPostAcknowledgementEnabled && post.metadata?.priority?.requested_ack;
     const reactionsVisible = hasReactions && showAddReaction;
     if (!hasBeenDeleted) {
+        // For encrypted posts, show placeholder instead of message content and files
+        const encryptedContent = isEncryptedPost ? (
+            <EncryptedPlaceholder
+                reason='no_access'
+                testID='post_body.encrypted_placeholder'
+            />
+        ) : null;
+
         body = (
             <View style={style.messageBody}>
-                {message}
-                {hasContent &&
+                {isEncryptedPost ? encryptedContent : message}
+                {!isEncryptedPost && hasContent &&
                 <Content
                     isReplyPost={isReplyPost}
                     layoutWidth={layoutWidth}
@@ -199,7 +210,7 @@ const Body = ({
                     theme={theme}
                 />
                 }
-                {hasFiles &&
+                {!isEncryptedPost && hasFiles &&
                 <Files
                     failed={isFailed}
                     layoutWidth={layoutWidth}

@@ -6,6 +6,7 @@ import {StyleSheet, View} from 'react-native';
 
 import AttachmentAction from './attachment_quick_action';
 import EmojiAction from './emoji_quick_action';
+import EncryptionAction from './encryption_action';
 import InputAction from './input_quick_action';
 import PostPriorityAction from './post_priority_action';
 
@@ -13,6 +14,7 @@ type Props = {
     testID?: string;
     canUploadFiles: boolean;
     fileCount: number;
+    isEncryptionEnabled: boolean;
     isPostPriorityEnabled: boolean;
     canShowPostPriority?: boolean;
     canShowSlashCommands?: boolean;
@@ -44,6 +46,7 @@ export default function QuickActions({
     canUploadFiles,
     value,
     fileCount,
+    isEncryptionEnabled,
     isPostPriorityEnabled,
     canShowSlashCommands = true,
     canShowPostPriority,
@@ -62,6 +65,7 @@ export default function QuickActions({
     const slashInputActionTestID = `${testID}.slash_input_action`;
     const emojiActionTestID = `${testID}.emoji_action`;
     const attachmentActionTestID = `${testID}.attachment_action`;
+    const encryptionActionTestID = `${testID}.encryption_action`;
     const postPriorityActionTestID = `${testID}.post_priority_action`;
 
     const uploadProps = {
@@ -100,6 +104,13 @@ export default function QuickActions({
             {canShowEmojiPicker && (
                 <EmojiAction
                     testID={emojiActionTestID}
+                />
+            )}
+            {isEncryptionEnabled && (
+                <EncryptionAction
+                    testID={encryptionActionTestID}
+                    postPriority={postPriority}
+                    updatePostPriority={updatePostPriority}
                 />
             )}
             {isPostPriorityEnabled && canShowPostPriority && (

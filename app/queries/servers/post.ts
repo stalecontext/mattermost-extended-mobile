@@ -258,6 +258,10 @@ export const observeIsPostAcknowledgementsEnabled = (database: Database) => {
     return observeConfigBooleanValue(database, 'PostAcknowledgements');
 };
 
+export const observeIsEncryptionEnabled = (database: Database) => {
+    return observeConfigBooleanValue(database, 'FeatureFlagEncryption');
+};
+
 export const observePersistentNotificationsEnabled = (database: Database) => {
     const user = observeCurrentUser(database);
     const enabledForAll = observeConfigBooleanValue(database, 'AllowPersistentNotifications');

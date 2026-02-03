@@ -15,7 +15,7 @@ import type {MessageDescriptor} from 'react-intl';
 type TagProps = {
     message: MessageDescriptor | string;
     icon?: string;
-    type?: 'general' | 'info' | 'danger' | 'dangerDim' | 'success' | 'warning' | 'infoDim';
+    type?: 'general' | 'info' | 'danger' | 'dangerDim' | 'success' | 'warning' | 'infoDim' | 'encrypted';
     size?: 'xs' | 's' | 'm';
     uppercase?: boolean;
     testID?: string;
@@ -71,6 +71,12 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme: Theme) => {
         },
         infoDimText: {
             color: theme.buttonBg,
+        },
+        encryptedContainer: {
+            backgroundColor: '#9333EA',
+        },
+        encryptedText: {
+            color: theme.buttonColor,
         },
     };
 });

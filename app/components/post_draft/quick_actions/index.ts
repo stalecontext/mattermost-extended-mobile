@@ -4,7 +4,7 @@
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import React from 'react';
 
-import {observeIsPostPriorityEnabled} from '@queries/servers/post';
+import {observeIsEncryptionEnabled, observeIsPostPriorityEnabled} from '@queries/servers/post';
 import {observeCanUploadFiles} from '@queries/servers/security';
 import {observeMaxFileCount} from '@queries/servers/system';
 
@@ -18,6 +18,7 @@ const enhanced = withObservables([], ({database}: WithDatabaseArgs) => {
 
     return {
         canUploadFiles,
+        isEncryptionEnabled: observeIsEncryptionEnabled(database),
         isPostPriorityEnabled: observeIsPostPriorityEnabled(database),
         maxFileCount,
     };

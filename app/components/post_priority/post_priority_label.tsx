@@ -20,11 +20,28 @@ const messages = defineMessages({
         id: 'post_priority.label.important',
         defaultMessage: 'IMPORTANT',
     },
+    encrypted: {
+        id: 'post_priority.label.encrypted',
+        defaultMessage: 'ENCRYPTED',
+    },
 });
 
 const PostPriorityLabel = ({label}: Props) => {
     if (label === PostPriorityType.STANDARD) {
         return null;
+    }
+
+    if (label === PostPriorityType.ENCRYPTED) {
+        return (
+            <Tag
+                message={messages.encrypted}
+                icon='lock-outline'
+                type='encrypted'
+                size='xs'
+                testID='encrypted_post_priority_label'
+                uppercase={true}
+            />
+        );
     }
 
     const isUrgent = label === PostPriorityType.URGENT; // else it is important

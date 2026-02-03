@@ -44,7 +44,7 @@ type PostAcknowledgement = {
 }
 
 type PostPriority = {
-    priority: '' | 'urgent' | 'important';
+    priority: '' | 'urgent' | 'important' | 'encrypted';
     requested_ack?: boolean;
     persistent_notifications?: boolean;
 };
