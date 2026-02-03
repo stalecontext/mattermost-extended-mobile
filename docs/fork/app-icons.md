@@ -2,6 +2,24 @@
 
 This document describes where to find and modify the iOS and Android app icons.
 
+## Icon Manager Tool
+
+For bulk icon replacement, use the Icon Manager GUI tool:
+
+```bash
+cd tools/icon_manager
+pip install PyQt6 PyQt6-svg  # First time only
+python main.py
+```
+
+The tool supports:
+- **SVG to PNG conversion** with automatic padding detection
+- **Override support** for per-icon customization
+- **Adaptive icon layer replacement** - directly replace foreground/background PNGs
+- **Export/Import workflow** for manual editing
+
+See [tools/icon_manager/README.md](../../tools/icon_manager/README.md) for full documentation.
+
 ## iOS Icons
 
 **Location:** `ios/Mattermost/Images.xcassets/AppIcon.appiconset/`

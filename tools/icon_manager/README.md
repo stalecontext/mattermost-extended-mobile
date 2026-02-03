@@ -9,7 +9,15 @@ A GUI tool for managing app icons in the Mattermost Mobile project. Converts SVG
 - **Override support** - assign different SVGs or PNGs to specific icons
 - **Before/after preview** - see exactly what icons will look like
 - **Export/Import workflow** - export icons for manual editing, import from ZIP
+- **Adaptive icon layer replacement** - dedicated tab for Android foreground/background layers with density previews
 - **Configuration persistence** - save your SVG and override settings
+
+## Tabs
+
+The application has two main tabs:
+
+1. **SVG Conversion** - The main workflow for converting SVG files to PNG icons
+2. **Adaptive Icons** - Dedicated interface for replacing Android adaptive icon layers
 
 ## Requirements
 
@@ -39,14 +47,17 @@ tools/icon_manager/
 ├── core/                 # Core data structures
 │   ├── __init__.py
 │   ├── constants.py      # Paths, colors, theme
-│   └── models.py         # IconBounds, IconTarget, Config
+│   ├── models.py         # IconBounds, IconTarget, Config
+│   └── adaptive_icons.py # Adaptive icon layer replacement
 ├── rendering/            # Image processing
 │   ├── __init__.py
 │   └── renderer.py       # SVG/PNG rendering utilities
 └── ui/                   # User interface
     ├── __init__.py
+    ├── icons.py          # SVG icons for UI
     ├── widgets.py        # Reusable UI components
-    └── main_window.py    # Main application window
+    ├── adaptive_tab.py   # Adaptive icon layer replacement tab
+    └── main_window.py    # Main application window (tabbed)
 ```
 
 ## Basic Workflow
@@ -74,6 +85,45 @@ For manual touch-ups (e.g., in Photoshop/GIMP):
 3. Edit the exported PNGs as needed
 4. ZIP the folder (keeping manifest.json)
 5. **Import from ZIP** - Restores edited icons to their original locations
+
+## Adaptive Icon Layer Replacement
+
+The **Adaptive Icons** tab provides a dedicated interface for replacing Android adaptive icon layers:
+
+### Features
+- **Density previews** - See current icons for all densities (mdpi through xxxhdpi)
+- **Separate foreground/background** - Replace each layer independently
+- **Automatic scaling** - Source PNG is scaled to each density's required size
+
+### Workflow
+1. Switch to the **"Adaptive Icons"** tab
+2. In the Foreground or Background section, click **"Select PNG..."**
+3. Choose a high-resolution PNG (432×432 recommended for best quality)
+4. Review the current icons in the preview area
+5. Click **"Replace All"** to replace across all densities
+
+### When to Use
+- You have pre-made foreground/background PNGs (not SVGs)
+- You want to replace layers without going through the full SVG conversion workflow
+- You need to update just one layer while keeping the other
+
+### Target Files
+- **Foreground**: `ic_launcher_foreground.png` - The icon artwork with transparency
+- **Background**: `ic_launcher_background.png` - The solid or gradient background
+
+### Target Directories
+Files are replaced in:
+- `android/app/src/main/res/mipmap-*/`
+- `assets/base/release/icons/android/mipmap-*/`
+
+### Density Sizes
+| Density | Size |
+|---------|------|
+| mdpi | 108×108 |
+| hdpi | 162×162 |
+| xhdpi | 216×216 |
+| xxhdpi | 324×324 |
+| xxxhdpi | 432×432 |
 
 ## Saving Configuration
 

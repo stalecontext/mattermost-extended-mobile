@@ -92,6 +92,17 @@ ICONS = {
     "browse": f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
         <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
     </svg>''',
+
+    # Adaptive icon layer icons
+    "foreground": f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{ICON_COLOR}" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="12" cy="12" r="5" fill="{ICON_COLOR_LIGHT}"/>
+    </svg>''',
+
+    "background": f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{ICON_COLOR}" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" fill="{ICON_COLOR}" opacity="0.3"/>
+        <circle cx="12" cy="12" r="5" stroke="{ICON_COLOR}" fill="none" stroke-dasharray="2 2"/>
+    </svg>''',
 }
 
 

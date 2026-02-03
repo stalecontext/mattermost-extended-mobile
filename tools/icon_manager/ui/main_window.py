@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QTableWidget, QTableWidgetItem,
     QMessageBox, QProgressDialog, QHeaderView,
-    QAbstractItemView, QCheckBox, QMenu, QApplication
+    QAbstractItemView, QCheckBox, QMenu, QApplication, QTabWidget,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QColor, QIcon, QAction
@@ -28,6 +28,7 @@ from ..rendering import (
     render_svg_cropped, render_png_to_bounds,
 )
 from .widgets import SvgInputWidget, ComparisonWidget
+from .adaptive_tab import AdaptiveIconTab
 from .icons import get_icon
 
 
@@ -65,9 +66,37 @@ class IconManagerWindow(QMainWindow):
         self.setWindowTitle("Mattermost Icon Manager")
         self.setMinimumSize(1100, 700)
 
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QHBoxLayout(central)
+        # Create tab widget as central widget
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+                background-color: {COLORS['background']};
+            }}
+            QTabBar::tab {{
+                background-color: {COLORS['surface']};
+                color: {COLORS['text_primary']};
+                padding: 10px 20px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                border: 1px solid {COLORS['border']};
+                border-bottom: none;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {COLORS['primary_light']};
+                color: {COLORS['text_inverse']};
+            }}
+            QTabBar::tab:hover:!selected {{
+                background-color: {COLORS['surface_alt']};
+            }}
+        """)
+        self.setCentralWidget(self.tabs)
+
+        # Create SVG conversion tab
+        svg_tab = QWidget()
+        layout = QHBoxLayout(svg_tab)
         layout.setSpacing(16)
         layout.setContentsMargins(16, 16, 16, 16)
 
@@ -222,6 +251,13 @@ class IconManagerWindow(QMainWindow):
 
         right_panel.addLayout(actions)
         layout.addLayout(right_panel, 1)
+
+        # Add SVG tab to tab widget
+        self.tabs.addTab(svg_tab, get_icon("generate", 16), "SVG Conversion")
+
+        # Create and add Adaptive Icons tab
+        self.adaptive_tab = AdaptiveIconTab()
+        self.tabs.addTab(self.adaptive_tab, get_icon("android", 16), "Adaptive Icons")
 
     def _scan_targets(self):
         """Scan project directories for icon targets."""
